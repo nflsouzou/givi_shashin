@@ -9,12 +9,6 @@
    Security must be enforced by Firestore Security Rules (see firestore.rules).
    ============================================================================ */
 
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -26,10 +20,6 @@ const firebaseConfig = {
   appId: "1:390668829442:web:61f4230072315405d7b81b",
   measurementId: "G-32F8BRRMXC"
 };
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 
 // Optional extra UI gate. Leave empty for any Firebase Auth account to see admin UI.
 // For real admin-only access, put the same UID in the stricter rules in README.md.
