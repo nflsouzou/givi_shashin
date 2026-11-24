@@ -155,20 +155,91 @@ function safeUrl(raw, fallback = '') {
   } catch { return fallback; }
 }
 
-// Only ImageKit-hosted images receive ImageKit's tr parameter.
-// Existing query parameters are preserved; existing tr is replaced for this use.
+// Use the public original first, everywhere. Transformations are a secondary
+// candidate only (not forced), because ImageKit can reject transformations of
+// high-resolution originals even when its unmodified URL works.
+function originalImageUrl(rawUrl) {
+  const input = safeUrl(rawUrl);
+  if (!input) return '';
+  const url = new URL(input);
+  if (url.hostname.toLowerCase() !== 'ik.imagekit.io') return url.href;
+  url.searchParams.delete('tr');
+  // ImageKit also supports path-based transformations: /tr:w-600,q-80/...
+  url.pathname = url.pathname.replace(/\/tr:[^/]+(?=\/)/g, '');
+  return url.href;
+}
 function imagekitUrl(rawUrl, mode = 'thumb') {
-  const urlString = safeUrl(rawUrl);
-  if (!urlString) return '';
-  const url = new URL(urlString);
+  const original = originalImageUrl(rawUrl);
+  if (!original) return '';
+  const url = new URL(original);
   if (url.hostname.toLowerCase() === 'ik.imagekit.io') {
     url.searchParams.set('tr', mode === 'large' ? 'w-1800,q-90' : 'w-600,q-80');
   }
   return url.href;
 }
+function imageCandidates(rawUrl, mode = 'thumb') {
+  const raw = safeUrl(rawUrl);
+  if (!raw) return [];
+  const original = originalImageUrl(raw);
+  const list = [original, raw];
+  if (new URL(raw).hostname.toLowerCase() === 'ik.imagekit.io') {
+    list.push(imagekitUrl(original, mode));
+  }
+  return [...new Set(list.filter(Boolean))];
+}
+// Local placeholder is shown only if *all* provider URLs fail. It is not uploaded
+// to Firestore and does not replace the user's saved image URL.
+const IMAGE_FALLBACK = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480"><rect width="640" height="480" fill="#182131"/><path d="M120 348l114-120 75 81 99-111 112 150" fill="none" stroke="#526074" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="208" cy="139" r="29" fill="#526074"/><text x="320" y="408" fill="#94A3B8" font-family="Arial,sans-serif" text-anchor="middle" font-size="24" letter-spacing="3">IMAGE UNAVAILABLE</text></svg>'
+);
+
+function setResilientImage(element, rawUrl, mode = 'thumb') {
+  const raw = safeUrl(rawUrl);
+  const candidates = imageCandidates(raw, mode);
+  element.dataset.imageSource = raw;
+  element.dataset.imageMode = mode;
+  element.dataset.imageAttempt = '0';
+  element.src = candidates[0] || IMAGE_FALLBACK;
+}
+function resilientImageAttrs(rawUrl, mode = 'thumb') {
+  const source = safeUrl(rawUrl);
+  const first = imageCandidates(source, mode)[0] || IMAGE_FALLBACK;
+  return `src="${escapeHtml(first)}" data-image-source="${escapeHtml(source)}" data-image-mode="${mode}" data-image-attempt="0"`;
+}
+// Capturing error events also handles images inserted later by renderAlbums /
+// renderGallery. A source is never retried twice, so broken links cannot loop.
+function onImageError(event) {
+  const node = event.target;
+  if (!(node instanceof HTMLImageElement) || !node.hasAttribute('data-image-source')) return;
+  const candidates = imageCandidates(node.dataset.imageSource, node.dataset.imageMode || 'thumb');
+  const nextIndex = Number(node.dataset.imageAttempt || 0) + 1;
+  if (nextIndex < candidates.length) {
+    node.dataset.imageAttempt = String(nextIndex);
+    node.src = candidates[nextIndex];
+    return;
+  }
+  console.warn('[Givi Shashin] URL gambar tidak tersedia:', node.dataset.imageSource);
+  node.removeAttribute('data-image-source');
+  node.src = IMAGE_FALLBACK;
+}
+
+function loadImageUrl(rawUrl, mode = 'large', fallbackUrl = '') {
+  const candidates = [...new Set([...imageCandidates(rawUrl, mode), ...imageCandidates(fallbackUrl, mode)])];
+  return new Promise(resolve => {
+    let index = 0;
+    const attempt = () => {
+      if (index >= candidates.length) { resolve(''); return; }
+      const candidate = candidates[index++];
+      const image = new Image();
+      image.onload = () => resolve(candidate);
+      image.onerror = attempt;
+      image.src = candidate;
+    };
+    attempt();
+  });
+}
 
 const e = escapeHtml;
-const img = (url, mode = 'thumb') => e(imagekitUrl(url, mode));
 const albumsToDisplay = () => state.albums.length ? state.albums : (state.site.albumsInitialized ? [] : DEMO_ALBUMS);
 const isDemoAlbum = (album) => album.id.startsWith('demo-') && !state.albums.some((a) => a.id === album.id);
 const bySortOrder = (a,b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) || String(a.title).localeCompare(String(b.title));
@@ -191,49 +262,87 @@ function setHeadline(id, text) {
   el(id).innerHTML = clean.split(/\r?\n/).map(e).join('<br>') + '<span class="title-period">.</span>';
 }
 
+// Profile uses the same robust original-first loader as every other image.
+// The initials appear only when neither the original nor the optional fallback works.
+let avatarLoadVersion = 0;
 function renderProfile() {
   const site = state.site;
   const name = String(site.profileName || DEFAULT_SITE.profileName).trim();
   el('profileName').textContent = name;
   el('profileRole').textContent = site.profileRole || DEFAULT_SITE.profileRole;
   el('profileBio').textContent = site.profileBio || DEFAULT_SITE.profileBio;
-  const initials = name.split(/\s+/).filter(Boolean).slice(0,2).map((part) => part[0]).join('').toUpperCase() || 'ME';
-  const fallback = el('profileAvatarPlaceholder');
-  const picture = el('profileAvatar');
-  fallback.textContent = initials;
-  const originalUrl = safeUrl(site.profilePhotoUrl);
-  const photoUrl = imagekitUrl(originalUrl, 'thumb');
-  picture.alt = `Foto profil ${name}`;
-
-  picture.onload = () => {
-    picture.hidden = false;
-    fallback.hidden = true;
-  };
-  picture.onerror = () => {
-    // If ImageKit transformation fails, retry once with the original image URL.
-    if (picture.src === photoUrl && originalUrl && originalUrl !== photoUrl) {
-      picture.src = originalUrl;
+  const initials = name.split(/\s+/).filter(Boolean).slice(0,2)
+    .map(part => part[0]).join('').toUpperCase() || 'ME';
+  const placeholder = el('profileAvatarPlaceholder');
+  const avatar = el('profileAvatar');
+  placeholder.textContent = initials;
+  avatar.alt = `Foto profil ${name}`;
+  const inputUrl = safeUrl(site.profilePhotoUrl);
+  if (avatar.dataset.profileSource === inputUrl) return;
+  avatar.dataset.profileSource = inputUrl;
+  const version = ++avatarLoadVersion;
+  avatar.hidden = true;
+  placeholder.hidden = false;
+  avatar.removeAttribute('src');
+  if (!inputUrl) return;
+  loadImageUrl(inputUrl, 'thumb').then(url => {
+    if (version !== avatarLoadVersion) return;
+    if (!url) {
+      console.warn('[Givi Shashin] Foto profil tidak bisa dimuat:', inputUrl);
       return;
     }
-    picture.hidden = true;
-    fallback.hidden = false;
-  };
+    avatar.src = url;
+    avatar.hidden = false;
+    placeholder.hidden = true;
+  });
+}
 
-  if (!originalUrl) {
-    picture.dataset.profileSource = '';
-    picture.removeAttribute('src');
-    picture.hidden = true;
-    fallback.hidden = false;
-  } else if (picture.dataset.profileSource !== originalUrl) {
-    // Reload only when the saved image URL changes, avoiding flashes on Firestore updates.
-    picture.dataset.profileSource = originalUrl;
-    fallback.hidden = false;
-    picture.hidden = true;
-    picture.src = photoUrl;
-  } else if (picture.complete && picture.naturalWidth > 0) {
-    picture.hidden = false;
-    fallback.hidden = true;
+let profilePreviewCounter = 0;
+let profilePreviewDebounce;
+// Show a real image loading test inside the admin form. Does not use Firebase
+// or ImageKit's SDK and therefore works with normal HTTPS public images too.
+function checkProfilePhotoUrl() {
+  const input = el('siteProfilePhoto');
+  const preview = el('profileUrlPreview');
+  const fallback = el('profileUrlPreviewFallback');
+  const status = el('profileUrlStatus');
+  const openLink = el('profileUrlOpen');
+  const current = ++profilePreviewCounter;
+  const raw = input.value.trim();
+  const url = safeUrl(raw);
+  preview.hidden = true;
+  fallback.hidden = false;
+  openLink.hidden = !url;
+  if (url) openLink.href = url;
+  else openLink.removeAttribute('href');
+
+  if (!raw) {
+    status.textContent = 'Belum ada URL foto. Inisial nama akan ditampilkan.';
+    status.dataset.status = 'idle';
+    return;
   }
+  if (!url) {
+    status.textContent = 'URL tidak valid. Gunakan URL publik HTTPS dari ImageKit.';
+    status.dataset.status = 'error';
+    return;
+  }
+  status.textContent = 'Sedang memeriksa apakah foto bisa dibuka...';
+  status.dataset.status = 'loading';
+  loadImageUrl(url, 'thumb').then(usable => {
+    if (current !== profilePreviewCounter) return;
+    if (!usable) {
+      status.textContent = 'URL tidak berhasil dimuat. Periksa Copy URL, status publik, dan batas ukuran gambar di ImageKit.';
+      status.dataset.status = 'error';
+      return;
+    }
+    preview.src = usable;
+    preview.hidden = false;
+    fallback.hidden = true;
+    status.textContent = usable === originalImageUrl(url)
+      ? 'Foto asli berhasil dimuat. Klik SIMPAN PERUBAHAN untuk menerapkannya.'
+      : 'Foto berhasil dimuat memakai URL alternatif. Klik SIMPAN PERUBAHAN.';
+    status.dataset.status = 'ok';
+  });
 }
 
 function renderBrandAndStory() {
@@ -247,10 +356,10 @@ function renderBrandAndStory() {
   setHeadline('storyTitle', site.storyTitle || DEFAULT_SITE.storyTitle);
   el('storyDescription').textContent = site.storyDescription || '';
   el('aboutIntro').textContent = site.aboutIntro || '';
-  el('storyBackground').style.backgroundImage = `url("${imagekitUrl(site.storyImageUrl, 'large') || DEFAULT_SITE.storyImageUrl}")`;
+  renderStoryBackground(site.storyImageUrl);
   const thumbs = [site.storyThumbOneUrl, site.storyThumbTwoUrl].filter((url) => safeUrl(url));
   el('storyThumbs').innerHTML = thumbs.map((url, i) =>
-    `<div class="showcase-thumb"><img loading="lazy" src="${img(url)}" alt="Preview story ${i + 1}"></div>`
+    `<div class="showcase-thumb"><img loading="lazy" ${resilientImageAttrs(url)} alt="Preview story ${i + 1}"></div>`
   ).join('');
   const email = String(site.contactEmail || '').trim();
   el('contactEmail').href = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
@@ -263,24 +372,37 @@ function getHighlights() {
   return [0,1,2].map((i) => ({ ...DEFAULT_SITE.highlights[i], ...(raw && raw[i] ? raw[i] : {}) }));
 }
 
+let storyBackgroundVersion = 0;
+function renderStoryBackground(rawUrl) {
+  const version = ++storyBackgroundVersion;
+  loadImageUrl(rawUrl, 'large', DEFAULT_SITE.storyImageUrl).then(source => {
+    if (version !== storyBackgroundVersion) return;
+    el('storyBackground').style.backgroundImage = source ? `url("${source}")` : 'none';
+  });
+}
+
+let heroBackgroundVersion = 0;
 function changeBackground(url, firstRender = false) {
-  const source = imagekitUrl(url, 'large') || DEFAULT_SITE.highlights[0].imageUrl;
-  const current = el(state.backgroundSlot === 0 ? 'heroBgA' : 'heroBgB');
-  if (firstRender) {
-    current.style.backgroundImage = `url("${source}")`;
-    current.classList.add('is-visible');
-    return;
-  }
-  const nextSlot = state.backgroundSlot === 0 ? 1 : 0;
-  const next = el(nextSlot === 0 ? 'heroBgA' : 'heroBgB');
-  next.style.backgroundImage = `url("${source}")`;
-  next.classList.remove('is-visible');
-  // Allow the new background to cross-fade rather than cutting instantly.
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    next.classList.add('is-visible');
-    current.classList.remove('is-visible');
-  }));
-  state.backgroundSlot = nextSlot;
+  const version = ++heroBackgroundVersion;
+  loadImageUrl(url, 'large', DEFAULT_SITE.highlights[0].imageUrl).then(source => {
+    if (version !== heroBackgroundVersion) return;
+    const current = el(state.backgroundSlot === 0 ? 'heroBgA' : 'heroBgB');
+    if (firstRender) {
+      current.style.backgroundImage = source ? `url("${source}")` : 'none';
+      current.classList.add('is-visible');
+      return;
+    }
+    const nextSlot = state.backgroundSlot === 0 ? 1 : 0;
+    const next = el(nextSlot === 0 ? 'heroBgA' : 'heroBgB');
+    next.style.backgroundImage = source ? `url("${source}")` : 'none';
+    next.classList.remove('is-visible');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (version !== heroBackgroundVersion) return;
+      next.classList.add('is-visible');
+      current.classList.remove('is-visible');
+    }));
+    state.backgroundSlot = nextSlot;
+  });
 }
 
 function setSlide(index, initial = false) {
@@ -331,10 +453,10 @@ function renderAlbums() {
   const visible = selected.slice(0, state.visibleAlbumCount);
   el('albumGrid').innerHTML = visible.map((album,index) => {
     const demo = isDemoAlbum(album);
-    const cover = imagekitUrl(album.coverUrl) || imagekitUrl(normalizedPhotos(album)[0]?.url) || DEFAULT_SITE.highlights[0].imageUrl;
+    const cover = safeUrl(album.coverUrl) || safeUrl(normalizedPhotos(album)[0]?.url) || DEFAULT_SITE.highlights[0].imageUrl;
     return `<article class="album-card">
       <button class="album-card__link" type="button" data-open-album="${e(album.id)}" aria-label="Buka album ${e(album.title)}">
-        <span class="album-card__image-wrap"><img class="album-card__image" loading="lazy" src="${e(cover)}" alt="Cover album ${e(album.title)}">
+        <span class="album-card__image-wrap"><img class="album-card__image" loading="lazy" ${resilientImageAttrs(cover)} alt="Cover album ${e(album.title)}">
           <span class="album-card__type">${e(album.category || 'PORTFOLIO')}</span><span class="album-card__sequence">${capitalizeId(index)}</span></span>
         <span class="album-card__info"><strong class="album-card__title">${e(album.title)}</strong><span class="album-card__description">${e(album.description || '')}</span></span>
       </button>
@@ -412,7 +534,7 @@ function renderGallery() {
   el('galleryMasonry').innerHTML = photos.map((photo,i) => `
     <article class="masonry-item">
       <button type="button" class="masonry-item__view" data-open-photo="${i}" aria-label="Buka foto ${e(photo.title || `Foto ${i+1}`)}">
-        <img loading="lazy" src="${img(photo.url)}" alt="${e(photo.title || `Foto ${i+1}`)}">
+        <img loading="lazy" ${resilientImageAttrs(photo.url)} alt="${e(photo.title || `Foto ${i+1}`)}">
       </button>
       <span class="masonry-item__label">${e(photo.title || `FRAME ${capitalizeId(i)}`)}</span>
       ${state.admin ? `<div class="masonry-item__admin"><button type="button" class="mini-button" data-edit-photo="${e(photo.id)}">EDIT</button><button type="button" class="mini-button mini-button--danger" data-delete-photo="${e(photo.id)}">HAPUS</button></div>` : ''}
@@ -431,7 +553,7 @@ function renderLightbox() {
   const photos = normalizedPhotos(album);
   const photo = photos[state.activePhotoIndex];
   if (!photo) { if (!el('lightboxModal').hidden) closeModal('lightboxModal'); return; }
-  el('lightboxImage').src = imagekitUrl(photo.url, 'large');
+  setResilientImage(el('lightboxImage'), photo.url, 'large');
   el('lightboxImage').alt = photo.title || 'Foto portofolio';
   el('lightboxCounter').textContent = `${album.title} · ${capitalizeId(state.activePhotoIndex)} / ${String(photos.length).padStart(2,'0')}`;
   el('lightboxTitle').textContent = photo.title || 'UNTITLED FRAME';
@@ -578,7 +700,9 @@ function openSiteEditor() {
   form.elements.namedItem('instagramUrl').value = state.site.instagramUrl || '';
   form.elements.namedItem('storyThumbOneUrl').value = state.site.storyThumbOneUrl || '';
   form.elements.namedItem('storyThumbTwoUrl').value = state.site.storyThumbTwoUrl || '';
+  checkProfilePhotoUrl();
   openModal('siteModal');
+  validateVisibleImageFields('siteModal');
 }
 async function saveSite(event) {
   event.preventDefault();
@@ -612,6 +736,7 @@ function openHighlightEditor(index) {
   }
   form.elements.namedItem('highlightIndex').value = index;
   openModal('highlightModal');
+  validateVisibleImageFields('highlightModal');
 }
 async function saveHighlight(event) {
   event.preventDefault();
@@ -670,6 +795,7 @@ function openAlbumEditor(id = '') {
   const names = ['title','category','description','coverUrl','sortOrder'];
   for (const key of names) el('albumForm').elements.namedItem(key).value = album?.[key] ?? (key === 'sortOrder' ? String(state.albums.length + 1) : '');
   openModal('albumFormModal');
+  validateVisibleImageFields('albumFormModal');
 }
 async function saveAlbum(event) {
   event.preventDefault();
@@ -731,6 +857,7 @@ function openPhotoEditor(photoId = '') {
   for (const key of ['url','title','description','category']) form.elements.namedItem(key).value = photo?.[key] ?? '';
   for (const key of ['camera','lens','focalLength','shutter','aperture','iso']) form.elements.namedItem(key).value = photo?.exif?.[key] ?? '';
   openModal('photoFormModal');
+  validateVisibleImageFields('photoFormModal');
 }
 async function savePhoto(event) {
   event.preventDefault();
@@ -867,6 +994,11 @@ function attachEvents() {
   el('loginForm').addEventListener('submit', doLogin);
   el('editSiteButton').addEventListener('click', openSiteEditor);
   el('editProfileButton').addEventListener('click', openSiteEditor);
+  el('siteProfilePhoto').addEventListener('input', () => {
+    clearTimeout(profilePreviewDebounce);
+    profilePreviewDebounce = setTimeout(checkProfilePhotoUrl, 280);
+  });
+  el('siteProfilePhoto').addEventListener('change', checkProfilePhotoUrl);
   el('editGalleryAlbum').addEventListener('click', () => openAlbumEditor(state.activeAlbumId));
   el('adminEditSite').addEventListener('click', openSiteEditor);
   el('adminAddAlbum').addEventListener('click', () => openAlbumEditor());
@@ -896,10 +1028,71 @@ function attachEvents() {
   window.addEventListener('scroll', onScroll, { passive: true });
 }
 
+// Image URL checks in EVERY admin form, not only the profile editor.
+const imageEditorFields = ['siteStoryImage','siteThumbOne','siteThumbTwo',
+  'highlightImage','albumCover','photoUrl'];
+const imagePreviewTimers = new Map();
+const imagePreviewVersions = new Map();
+
+function validateImageField(input) {
+  const target = document.getElementById(`${input.id}ImageStatus`);
+  if (!target) return;
+  const value = input.value.trim();
+  const version = (imagePreviewVersions.get(input.id) || 0) + 1;
+  imagePreviewVersions.set(input.id, version);
+  target.hidden = !value;
+  if (!value) return;
+  const safe = safeUrl(value);
+  if (!safe) {
+    target.textContent = 'URL tidak valid. Gunakan URL HTTPS publik.';
+    target.dataset.status = 'error';
+    return;
+  }
+  target.textContent = 'Memeriksa gambar...';
+  target.dataset.status = 'loading';
+  loadImageUrl(safe, input.id === 'siteStoryImage' || input.id === 'highlightImage' ? 'large' : 'thumb').then(usable => {
+    if (imagePreviewVersions.get(input.id) !== version) return;
+    if (!usable) {
+      target.textContent = 'Gagal dimuat. Periksa URL asli, izin publik, dan batas ImageKit.';
+      target.dataset.status = 'error';
+    } else {
+      target.textContent = usable === originalImageUrl(safe)
+        ? '✓ Gambar asli berhasil dimuat.'
+        : '✓ Gambar berhasil dimuat dari URL alternatif.';
+      target.dataset.status = 'ok';
+    }
+  });
+}
+function installImageFieldChecks() {
+  for (const id of imageEditorFields) {
+    const input = el(id);
+    if (!input) continue;
+    const status = document.createElement('p');
+    status.id = `${id}ImageStatus`;
+    status.className = 'image-url-status';
+    status.setAttribute('aria-live','polite');
+    status.hidden = true;
+    input.insertAdjacentElement('afterend', status);
+    input.addEventListener('input', () => {
+      clearTimeout(imagePreviewTimers.get(id));
+      imagePreviewTimers.set(id, setTimeout(() => validateImageField(input), 320));
+    });
+    input.addEventListener('change', () => validateImageField(input));
+  }
+}
+function validateVisibleImageFields(modalId) {
+  document.querySelectorAll(`#${modalId} .editor-form input[type="url"]`).forEach(input => {
+    if (imageEditorFields.includes(input.id)) validateImageField(input);
+  });
+}
+
 function init() {
   const year = String(new Date().getFullYear());
   el('currentYear').textContent = year;
   el('footerYear').textContent = year;
+  // Capture image load failures before dynamically rendering albums and story.
+  document.addEventListener('error', onImageError, true);
+  installImageFieldChecks();
   attachEvents();
   renderBrandAndStory();
   setSlide(0, true);
@@ -910,4 +1103,4 @@ function init() {
 init();
 
 // Export for optional console testing (not used by site code).
-export { imagekitUrl, safeUrl, DEFAULT_SITE };
+export { imagekitUrl, imageCandidates, originalImageUrl, safeUrl, DEFAULT_SITE };
