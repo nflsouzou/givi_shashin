@@ -201,21 +201,39 @@ function renderProfile() {
   const fallback = el('profileAvatarPlaceholder');
   const picture = el('profileAvatar');
   fallback.textContent = initials;
-  const photoUrl = imagekitUrl(site.profilePhotoUrl, 'thumb');
-  picture.onerror = () => { picture.hidden = true; fallback.hidden = false; };
-  picture.onload = () => { picture.hidden = false; fallback.hidden = true; };
-  if (photoUrl) {
-    // Restore fallback until the profile image is fully loaded.
-    fallback.hidden = false;
+  const originalUrl = safeUrl(site.profilePhotoUrl);
+  const photoUrl = imagekitUrl(originalUrl, 'thumb');
+  picture.alt = `Foto profil ${name}`;
+
+  picture.onload = () => {
+    picture.hidden = false;
+    fallback.hidden = true;
+  };
+  picture.onerror = () => {
+    // If ImageKit transformation fails, retry once with the original image URL.
+    if (picture.src === photoUrl && originalUrl && originalUrl !== photoUrl) {
+      picture.src = originalUrl;
+      return;
+    }
     picture.hidden = true;
-    if (picture.src !== photoUrl) picture.src = photoUrl;
-    else if (picture.complete && picture.naturalWidth > 0) picture.onload();
-  } else {
+    fallback.hidden = false;
+  };
+
+  if (!originalUrl) {
+    picture.dataset.profileSource = '';
     picture.removeAttribute('src');
     picture.hidden = true;
     fallback.hidden = false;
+  } else if (picture.dataset.profileSource !== originalUrl) {
+    // Reload only when the saved image URL changes, avoiding flashes on Firestore updates.
+    picture.dataset.profileSource = originalUrl;
+    fallback.hidden = false;
+    picture.hidden = true;
+    picture.src = photoUrl;
+  } else if (picture.complete && picture.naturalWidth > 0) {
+    picture.hidden = false;
+    fallback.hidden = true;
   }
-  picture.alt = `Foto profil ${name}`;
 }
 
 function renderBrandAndStory() {
