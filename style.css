@@ -101,13 +101,17 @@ img { display: block; max-width: 100%; }
 .editor-fab--hero { position: absolute; z-index: 3; top: 115px; right: 53px; }
 
 /* Compact centered photographer profile: not a full screen section */
-.profile-strip { position: relative; border-bottom: 1px solid var(--border); background: linear-gradient(180deg,#0B0E14 0%,#101622 100%); padding: 18px 0 20px; text-align: center; }
+.profile-strip { position: relative; border-bottom: 1px solid var(--border); background: linear-gradient(180deg,#0B0E14 0%,#101622 100%); padding: 22px 0 24px; text-align: center; }
 .profile-strip__inner { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.profile-strip__eyebrow { color: #e889a1; letter-spacing: .22em; font-size: 8px; font-weight: 800; margin: 0 0 10px; }
-.profile-strip__avatar { width: 76px; height: 76px; border-radius: 50%; padding: 4px; background: linear-gradient(135deg,var(--accent),#3d4455 60%,#e11d48); box-shadow: 0 5px 25px rgba(0,0,0,.25); position: relative; overflow: hidden; flex: 0 0 auto; }
-.profile-strip__avatar img, .profile-strip__placeholder { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: center; }
-.profile-strip__placeholder { display: grid; place-items: center; font-family: var(--display); font-size: 31px; font-weight: 800; letter-spacing: .025em; background: #202a3a; color: #e4eaf4; }
-.profile-strip h2 { font-family: var(--display); font-size: 26px; line-height: 1; letter-spacing: .055em; margin: 8px 0 4px; text-transform: uppercase; }
+.profile-strip__eyebrow { color: #e889a1; letter-spacing: .22em; font-size: 8px; font-weight: 800; margin: 0 0 12px; }
+/* Larger portrait, but still compact within the strip */
+.profile-strip__avatar { width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg,var(--accent),#3d4455 60%,#e11d48); box-shadow: 0 8px 32px rgba(0,0,0,.32),0 0 0 5px rgba(225,29,72,.07); position: relative; overflow: hidden; flex: 0 0 auto; }
+.profile-strip__avatar img, .profile-strip__placeholder { position: absolute; inset: 5px; width: calc(100% - 10px); height: calc(100% - 10px); border-radius: 50%; }
+.profile-strip__avatar img { object-fit: cover; object-position: center 35%; }
+.profile-strip__placeholder { display: grid; place-items: center; font-family: var(--display); font-size: 46px; font-weight: 800; letter-spacing: .025em; background: #202a3a; color: #e4eaf4; }
+/* Explicitly honor the HTML hidden attribute; otherwise the placeholder covers the photo. */
+.profile-strip__avatar [hidden] { display: none !important; }
+.profile-strip h2 { font-family: var(--display); font-size: 27px; line-height: 1; letter-spacing: .055em; margin: 13px 0 5px; text-transform: uppercase; }
 .profile-strip__role { color: #ced8e4; font-size: 9px; letter-spacing: .15em; font-weight: 800; margin: 0; text-transform: uppercase; }
 .profile-strip__bio { color: var(--muted); font-size: 11px; line-height: 1.65; max-width: 610px; margin: 6px 0 0; }
 .profile-strip__edit { position: absolute; right: 0; top: 0; background: transparent; color: #fff; border: 1px solid rgba(225,29,72,.65); font-size: 9px; padding: 9px 11px; font-weight: 800; }
@@ -338,8 +342,9 @@ img { display: block; max-width: 100%; }
   .hero-teaser__title { font-size: 16px; }
   .hero-teaser__description { font-size: 9px; line-height: 1.5; }
   .editor-fab--hero { top: 80px; right: 17px; }
-  .profile-strip { padding: 18px 0 20px; }
-  .profile-strip__avatar { height: 70px; width: 70px; }
+  .profile-strip { padding: 20px 0 24px; }
+  .profile-strip__avatar { height: 116px; width: 116px; }
+  .profile-strip__placeholder { font-size: 39px; }
   .profile-strip h2 { font-size: 23px; }
   .profile-strip__bio { font-size: 10px; padding: 0 18px; }
   .profile-strip__edit { position: static; margin-top: 12px; }
