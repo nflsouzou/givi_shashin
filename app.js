@@ -31,6 +31,10 @@ const unsplash = (id, width = 1600) =>
 const DEFAULT_SITE = {
   brandName: 'ATELIER.',
   brandTagline: 'PHOTO STORIES',
+  profileName: 'YOUR NAME',
+  profileRole: 'PHOTOGRAPHER · VISUAL STORYTELLER',
+  profileBio: 'Saya mengabadikan manusia, perjalanan, dan cerita melalui cahaya.',
+  profilePhotoUrl: '',
   contactEmail: 'hello@example.com',
   instagramUrl: 'https://www.instagram.com/',
   storyEyebrow: 'THE ART OF OBSERVING',
@@ -118,6 +122,8 @@ const DEMO_ALBUMS = [
   }
 ];
 
+const ALBUM_PAGE_SIZE = 8;
+
 const state = {
   site: structuredClone(DEFAULT_SITE),
   albums: [], // Empty Firestore collection => visual demo albums (not saved).
@@ -130,6 +136,7 @@ const state = {
   activePhotoIndex: 0,
   currentCategory: 'ALL',
   currentQuery: '',
+  visibleAlbumCount: ALBUM_PAGE_SIZE,
   modalStack: [],
   lastFocus: null,
   backgroundSlot: 0
@@ -162,7 +169,7 @@ function imagekitUrl(rawUrl, mode = 'thumb') {
 
 const e = escapeHtml;
 const img = (url, mode = 'thumb') => e(imagekitUrl(url, mode));
-const albumsToDisplay = () => state.albums.length ? state.albums : DEMO_ALBUMS;
+const albumsToDisplay = () => state.albums.length ? state.albums : (state.site.albumsInitialized ? [] : DEMO_ALBUMS);
 const isDemoAlbum = (album) => album.id.startsWith('demo-') && !state.albums.some((a) => a.id === album.id);
 const bySortOrder = (a,b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) || String(a.title).localeCompare(String(b.title));
 const getAlbum = (id) => albumsToDisplay().find((a) => a.id === id);
@@ -184,8 +191,36 @@ function setHeadline(id, text) {
   el(id).innerHTML = clean.split(/\r?\n/).map(e).join('<br>') + '<span class="title-period">.</span>';
 }
 
+function renderProfile() {
+  const site = state.site;
+  const name = String(site.profileName || DEFAULT_SITE.profileName).trim();
+  el('profileName').textContent = name;
+  el('profileRole').textContent = site.profileRole || DEFAULT_SITE.profileRole;
+  el('profileBio').textContent = site.profileBio || DEFAULT_SITE.profileBio;
+  const initials = name.split(/\s+/).filter(Boolean).slice(0,2).map((part) => part[0]).join('').toUpperCase() || 'ME';
+  const fallback = el('profileAvatarPlaceholder');
+  const picture = el('profileAvatar');
+  fallback.textContent = initials;
+  const photoUrl = imagekitUrl(site.profilePhotoUrl, 'thumb');
+  picture.onerror = () => { picture.hidden = true; fallback.hidden = false; };
+  picture.onload = () => { picture.hidden = false; fallback.hidden = true; };
+  if (photoUrl) {
+    // Restore fallback until the profile image is fully loaded.
+    fallback.hidden = false;
+    picture.hidden = true;
+    if (picture.src !== photoUrl) picture.src = photoUrl;
+    else if (picture.complete && picture.naturalWidth > 0) picture.onload();
+  } else {
+    picture.removeAttribute('src');
+    picture.hidden = true;
+    fallback.hidden = false;
+  }
+  picture.alt = `Foto profil ${name}`;
+}
+
 function renderBrandAndStory() {
   const site = state.site;
+  renderProfile();
   el('brandName').textContent = site.brandName || DEFAULT_SITE.brandName;
   el('brandTagline').textContent = site.brandTagline || 'PHOTO STORIES';
   el('footerBrand').textContent = site.brandName || DEFAULT_SITE.brandName;
@@ -275,7 +310,8 @@ function renderAlbums() {
     const text = [album.title, album.description, album.category].join(' ').toLocaleLowerCase('id-ID');
     return matchesCategory && (!query || text.includes(query));
   });
-  el('albumGrid').innerHTML = selected.map((album,index) => {
+  const visible = selected.slice(0, state.visibleAlbumCount);
+  el('albumGrid').innerHTML = visible.map((album,index) => {
     const demo = isDemoAlbum(album);
     const cover = imagekitUrl(album.coverUrl) || imagekitUrl(normalizedPhotos(album)[0]?.url) || DEFAULT_SITE.highlights[0].imageUrl;
     return `<article class="album-card">
@@ -284,13 +320,19 @@ function renderAlbums() {
           <span class="album-card__type">${e(album.category || 'PORTFOLIO')}</span><span class="album-card__sequence">${capitalizeId(index)}</span></span>
         <span class="album-card__info"><strong class="album-card__title">${e(album.title)}</strong><span class="album-card__description">${e(album.description || '')}</span></span>
       </button>
-      ${state.admin ? demo
-        ? `<p class="demo-tag">DEMO · klik IMPORT DEMO untuk bisa mengedit</p>`
-        : `<div class="album-card__actions"><button class="mini-button" type="button" data-edit-album="${e(album.id)}">EDIT</button><button class="mini-button mini-button--danger" type="button" data-delete-album="${e(album.id)}">HAPUS</button></div>`
-        : ''}
+      ${state.admin ? `<div class="album-card__actions"><button class="mini-button" type="button" data-edit-album="${e(album.id)}">EDIT ALBUM</button><button class="mini-button mini-button--danger" type="button" data-delete-album="${e(album.id)}">HAPUS</button></div>${demo ? '<p class="demo-tag">CONTOH · otomatis disimpan saat pertama kali diedit</p>' : ''}` : ''}
     </article>`;
   }).join('');
   el('albumEmpty').hidden = selected.length > 0;
+  const loadMore = el('albumLoadMore');
+  const remaining = Math.max(0, selected.length - visible.length);
+  loadMore.hidden = remaining === 0;
+  if (remaining > 0) {
+    el('albumLoadMoreCount').textContent = String(Math.min(ALBUM_PAGE_SIZE, remaining));
+  }
+  const pagerStatus = el('albumPagerStatus');
+  pagerStatus.hidden = selected.length <= ALBUM_PAGE_SIZE;
+  pagerStatus.textContent = `Menampilkan ${visible.length} dari ${selected.length} album`;
   renderFilters();
   refreshImportButton();
 }
@@ -346,7 +388,8 @@ function renderGallery() {
   el('galleryCategory').textContent = album.category || 'PORTFOLIO';
   el('galleryDescription').textContent = album.description || '';
   el('galleryCount').textContent = `${photos.length} PHOTO${photos.length === 1 ? '' : 'S'}`;
-  el('addPhotoButton').hidden = !state.admin || demo;
+  el('addPhotoButton').hidden = !state.admin;
+  el('editGalleryAlbum').hidden = !state.admin;
   el('galleryEmpty').hidden = photos.length > 0;
   el('galleryMasonry').innerHTML = photos.map((photo,i) => `
     <article class="masonry-item">
@@ -354,7 +397,7 @@ function renderGallery() {
         <img loading="lazy" src="${img(photo.url)}" alt="${e(photo.title || `Foto ${i+1}`)}">
       </button>
       <span class="masonry-item__label">${e(photo.title || `FRAME ${capitalizeId(i)}`)}</span>
-      ${state.admin && !demo ? `<div class="masonry-item__admin"><button type="button" class="mini-button" data-edit-photo="${e(photo.id)}">EDIT</button><button type="button" class="mini-button mini-button--danger" data-delete-photo="${e(photo.id)}">HAPUS</button></div>` : ''}
+      ${state.admin ? `<div class="masonry-item__admin"><button type="button" class="mini-button" data-edit-photo="${e(photo.id)}">EDIT</button><button type="button" class="mini-button mini-button--danger" data-delete-photo="${e(photo.id)}">HAPUS</button></div>` : ''}
     </article>`).join('');
 }
 
@@ -511,7 +554,7 @@ async function doLogout() {
 function openSiteEditor() {
   if (!requireAdmin()) return;
   const form = el('siteForm');
-  for (const key of ['brandName','brandTagline','contactEmail','storyEyebrow','storyTitle','storyDescription','storyImageUrl','aboutIntro']) {
+  for (const key of ['brandName','brandTagline','contactEmail','profileName','profileRole','profileBio','profilePhotoUrl','storyEyebrow','storyTitle','storyDescription','storyImageUrl','aboutIntro']) {
     if (form.elements.namedItem(key)) form.elements.namedItem(key).value = state.site[key] || '';
   }
   form.elements.namedItem('instagramUrl').value = state.site.instagramUrl || '';
@@ -524,7 +567,7 @@ async function saveSite(event) {
   if (!requireAdmin()) return;
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
-  for (const key of ['storyImageUrl','storyThumbOneUrl','storyThumbTwoUrl']) {
+  for (const key of ['profilePhotoUrl','storyImageUrl','storyThumbOneUrl','storyThumbTwoUrl']) {
     if (data[key] && !safeUrl(data[key])) return toast(`URL HTTPS tidak valid: ${key}`, true);
   }
   if (data.instagramUrl && !safeUrl(data.instagramUrl)) return toast('URL Instagram harus HTTPS.', true);
@@ -535,7 +578,7 @@ async function saveSite(event) {
       ...data, updatedAt: firebase.fs.serverTimestamp()
     }, { merge: true });
     closeModal('siteModal');
-    toast('Header, kontak, dan story telah disimpan.');
+    toast('Profil, header, kontak, dan story berhasil disimpan.');
   } catch (error) { toast(friendlyError(error), true); }
   finally { button.disabled = false; }
 }
@@ -576,9 +619,32 @@ async function saveHighlight(event) {
   finally { button.disabled = false; }
 }
 
+// On first admin save, materialize all four preview albums as editable Firestore
+// documents. This keeps the other preview albums visible after editing one.
+let demoSeedPromise = null;
+async function persistDemoAlbumsIfNeeded() {
+  if (!state.albumsLoaded) throw new Error('Daftar album masih dimuat. Coba lagi setelah beberapa saat.');
+  if (state.albums.length || state.site.albumsInitialized) return;
+  if (!demoSeedPromise) {
+    demoSeedPromise = (async () => {
+      const batch = firebase.fs.writeBatch(firebase.db);
+      for (const album of DEMO_ALBUMS) {
+        const { id, ...data } = album;
+        batch.set(firebase.fs.doc(firebase.db, 'albums', id), {
+          ...structuredClone(data),
+          createdAt: firebase.fs.serverTimestamp(), updatedAt: firebase.fs.serverTimestamp()
+        });
+      }
+      batch.set(firebase.fs.doc(firebase.db, 'site_settings', 'main'), { albumsInitialized: true }, { merge: true });
+      await batch.commit();
+      state.site.albumsInitialized = true;
+    })().catch((error) => { demoSeedPromise = null; throw error; });
+  }
+  return demoSeedPromise;
+}
+
 function openAlbumEditor(id = '') {
   if (!requireAdmin()) return;
-  if (id && isDemoAlbum(getAlbum(id))) return toast('Import data demo ke Firestore sebelum mengedit album contoh.', true);
   const album = id ? getAlbum(id) : null;
   el('albumFormTitle').textContent = album ? 'EDIT ALBUM' : 'TAMBAH ALBUM';
   el('albumForm').reset();
@@ -603,6 +669,7 @@ async function saveAlbum(event) {
   const button = form.querySelector('[type="submit"]');
   button.disabled = true;
   try {
+    await persistDemoAlbumsIfNeeded();
     if (albumId) {
       await firebase.fs.updateDoc(firebase.fs.doc(firebase.db,'albums',albumId), payload);
     } else {
@@ -618,9 +685,11 @@ async function saveAlbum(event) {
 async function deleteAlbum(id) {
   if (!requireAdmin()) return;
   const album = getAlbum(id);
-  if (!album || isDemoAlbum(album)) return;
+  if (!album) return;
   if (!window.confirm(`Hapus album "${album.title}" beserta seluruh referensi fotonya? URL asli di ImageKit tidak akan terhapus.`)) return;
   try {
+    await persistDemoAlbumsIfNeeded();
+    await firebase.fs.setDoc(firebase.fs.doc(firebase.db,'site_settings','main'), {albumsInitialized: true}, {merge: true});
     await firebase.fs.deleteDoc(firebase.fs.doc(firebase.db,'albums',id));
     if (state.activeAlbumId === id) closeModal('galleryModal');
     toast('Album dihapus dari Firestore. File ImageKit tidak terpengaruh.');
@@ -634,7 +703,7 @@ function photoKey() {
 function openPhotoEditor(photoId = '') {
   if (!requireAdmin()) return;
   const album = getAlbum(state.activeAlbumId);
-  if (!album || isDemoAlbum(album)) return toast('Import demo sebelum menambahkan foto ke album contoh.', true);
+  if (!album) return;
   const photo = normalizedPhotos(album).find((p) => p.id === photoId);
   const form = el('photoForm');
   form.reset();
@@ -651,7 +720,7 @@ async function savePhoto(event) {
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
   const album = getAlbum(data.photoAlbumId);
-  if (!album || isDemoAlbum(album)) return toast('Album belum disimpan di Firestore.', true);
+  if (!album) return toast('Album tidak ditemukan.', true);
   if (!safeUrl(data.url)) return toast('URL foto harus HTTPS.', true);
   const payload = {
     id: data.photoId || photoKey(), url: safeUrl(data.url), title: data.title.trim(),
@@ -666,6 +735,7 @@ async function savePhoto(event) {
   const button = form.querySelector('[type="submit"]');
   button.disabled = true;
   try {
+    await persistDemoAlbumsIfNeeded();
     await firebase.fs.updateDoc(firebase.fs.doc(firebase.db,'albums',album.id), {
       photos, updatedAt: firebase.fs.serverTimestamp()
     });
@@ -677,11 +747,12 @@ async function savePhoto(event) {
 async function deletePhoto(photoId) {
   if (!requireAdmin()) return;
   const album = getAlbum(state.activeAlbumId);
-  if (!album || isDemoAlbum(album)) return;
+  if (!album) return;
   const photo = normalizedPhotos(album).find((p) => p.id === photoId);
   if (!photo || !window.confirm(`Hapus referensi foto "${photo.title}" dari album?`)) return;
   const photos = normalizedPhotos(album).filter((p) => p.id !== photoId);
   try {
+    await persistDemoAlbumsIfNeeded();
     await firebase.fs.updateDoc(firebase.fs.doc(firebase.db,'albums',album.id), {
       photos, updatedAt: firebase.fs.serverTimestamp()
     });
@@ -698,13 +769,14 @@ async function importDemoContent() {
   try {
     const batch = firebase.fs.writeBatch(firebase.db);
     const settings = firebase.fs.doc(firebase.db,'site_settings','main');
-    batch.set(settings, { ...state.site, updatedAt: firebase.fs.serverTimestamp() }, { merge: true });
+    batch.set(settings, { ...state.site, albumsInitialized: true, updatedAt: firebase.fs.serverTimestamp() }, { merge: true });
     for (const album of DEMO_ALBUMS) {
-      const ref = firebase.fs.doc(firebase.fs.collection(firebase.db,'albums'));
+      const ref = firebase.fs.doc(firebase.db,'albums',album.id);
       const { id: _demoId, ...payload } = album;
       batch.set(ref, { ...structuredClone(payload), createdAt: firebase.fs.serverTimestamp(), updatedAt: firebase.fs.serverTimestamp() });
     }
     await batch.commit();
+    state.site.albumsInitialized = true;
     toast('Empat album demo berhasil dipublikasikan ke Firestore.');
   } catch (error) { toast(friendlyError(error), true); }
   finally { button.disabled = false; }
@@ -718,6 +790,7 @@ function setSearchOpen(open) {
 function resetSearch() {
   state.currentCategory = 'ALL';
   state.currentQuery = '';
+  state.visibleAlbumCount = ALBUM_PAGE_SIZE;
   el('searchInput').value = '';
   renderAlbums();
 }
@@ -747,15 +820,21 @@ function attachEvents() {
     if (target.dataset.deletePhoto) return deletePhoto(target.dataset.deletePhoto);
     if (target.dataset.filter !== undefined) {
       state.currentCategory = target.dataset.filter;
+      state.visibleAlbumCount = ALBUM_PAGE_SIZE;
       renderAlbums();
     }
   });
   el('searchToggle').addEventListener('click', () => setSearchOpen(el('searchPanel').hidden));
   el('searchInput').addEventListener('input', (event) => {
     state.currentQuery = event.currentTarget.value;
+    state.visibleAlbumCount = ALBUM_PAGE_SIZE;
     renderAlbums();
   });
   el('resetFilters').addEventListener('click', resetSearch);
+  el('albumLoadMore').addEventListener('click', () => {
+    state.visibleAlbumCount += ALBUM_PAGE_SIZE;
+    renderAlbums();
+  });
   el('mobileToggle').addEventListener('click', () => {
     const open = !el('mainNav').classList.contains('is-open');
     el('mainNav').classList.toggle('is-open', open);
@@ -769,6 +848,8 @@ function attachEvents() {
   el('loginTrigger').addEventListener('click', () => openModal('loginModal'));
   el('loginForm').addEventListener('submit', doLogin);
   el('editSiteButton').addEventListener('click', openSiteEditor);
+  el('editProfileButton').addEventListener('click', openSiteEditor);
+  el('editGalleryAlbum').addEventListener('click', () => openAlbumEditor(state.activeAlbumId));
   el('adminEditSite').addEventListener('click', openSiteEditor);
   el('adminAddAlbum').addEventListener('click', () => openAlbumEditor());
   el('addAlbumButton').addEventListener('click', () => openAlbumEditor());
