@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=profile-large-20261124">
+  <link rel="stylesheet" href="./style.css?v=imagekit-robust-20261124-v3">
 </head>
 <body>
   <a class="skip-link" href="#albums">Langsung ke album</a>
@@ -206,7 +206,17 @@
         <div class="form-grid"><div><label for="siteProfileName">Nama fotografer</label><input id="siteProfileName" name="profileName" maxlength="70" placeholder="Nama Anda"></div><div><label for="siteProfileRole">Profesi / tagline singkat</label><input id="siteProfileRole" name="profileRole" maxlength="90" placeholder="PHOTOGRAPHER · VISUAL STORYTELLER"></div></div>
         <label for="siteProfileBio">Bio singkat (maksimal 160 karakter)</label><textarea id="siteProfileBio" name="profileBio" rows="2" maxlength="160" placeholder="Ceritakan gaya dan fokus fotografi Anda secara singkat."></textarea>
         <label for="siteProfilePhoto">URL foto profil (unggah dahulu ke ImageKit)</label><input id="siteProfilePhoto" name="profilePhotoUrl" type="url" placeholder="https://ik.imagekit.io/akun/profile.jpg">
-        <p class="field-hint">Foto ditampilkan dalam frame bulat berdiameter ±88px. Jika URL dikosongkan, akan tampil inisial nama sebagai pengganti.</p>
+        <div class="profile-url-check" id="profileUrlCheck" aria-live="polite">
+          <div class="profile-url-check__thumb">
+            <img id="profileUrlPreview" alt="Preview foto profil dari URL" hidden>
+            <span id="profileUrlPreviewFallback">PREVIEW</span>
+          </div>
+          <div class="profile-url-check__detail">
+            <p id="profileUrlStatus" data-status="idle">Tempel URL ImageKit untuk memeriksa gambar.</p>
+            <a id="profileUrlOpen" href="#" target="_blank" rel="noopener noreferrer" hidden>BUKA FOTO ASLI ↗</a>
+          </div>
+        </div>
+        <p class="field-hint">Foto akan tampil dalam lingkaran 140px (desktop) / 116px (HP). Gunakan URL publik asli dari ImageKit; website mengutamakan URL asli, dengan alternatif otomatis jika diperlukan.</p>
         <div class="editor-divider"><span>FEATURED STORY & KONTAK</span></div>
         <label for="siteStoryEyebrow">Label kecil section story</label><input id="siteStoryEyebrow" name="storyEyebrow" maxlength="80">
         <label for="siteStoryTitle">Judul story (gunakan Enter untuk baris baru)</label><textarea id="siteStoryTitle" name="storyTitle" rows="2" maxlength="110" required></textarea>
@@ -283,6 +293,6 @@
     <button id="adminLogout" type="button">LOGOUT ↗</button>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <script type="module" src="./app.js?v=profile-large-20261124"></script>
+  <script type="module" src="./app.js?v=imagekit-robust-20261124-v3"></script>
 </body>
 </html>
