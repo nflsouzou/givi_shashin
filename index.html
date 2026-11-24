@@ -69,6 +69,21 @@
         <button type="button" class="editor-fab editor-fab--hero admin-only" id="editSiteButton" hidden>Edit Header / Story</button>
       </section>
 
+      <!-- Compact profile / photographer introduction: between hero and albums -->
+      <section class="profile-strip" id="profile" aria-labelledby="profileName">
+        <div class="profile-strip__inner layout-width">
+          <p class="profile-strip__eyebrow">BEHIND THE LENS</p>
+          <div class="profile-strip__avatar" aria-label="Foto profil fotografer">
+            <span class="profile-strip__placeholder" id="profileAvatarPlaceholder" aria-hidden="true">ME</span>
+            <img id="profileAvatar" src="" alt="Foto profil fotografer" loading="lazy" hidden>
+          </div>
+          <h2 id="profileName">YOUR NAME</h2>
+          <p class="profile-strip__role" id="profileRole">PHOTOGRAPHER · VISUAL STORYTELLER</p>
+          <p class="profile-strip__bio" id="profileBio">Saya mengabadikan manusia, perjalanan, dan cerita melalui cahaya.</p>
+          <button class="profile-strip__edit admin-only" id="editProfileButton" type="button" hidden>EDIT PROFIL ↗</button>
+        </div>
+      </section>
+
       <section class="albums-section" id="albums" aria-labelledby="albumsHeading">
         <div class="layout-width">
           <div class="section-heading">
@@ -83,6 +98,13 @@
             <h3>Belum ada album yang cocok</h3>
             <p>Coba pencarian atau kategori lainnya.</p>
             <button type="button" class="outline-button" id="resetFilters">RESET FILTER</button>
+          </div>
+          <div class="album-pagination" aria-label="Navigasi album">
+            <p class="album-pagination__status" id="albumPagerStatus" role="status" aria-live="polite" hidden></p>
+            <button type="button" id="albumLoadMore" class="album-pagination__button" aria-controls="albumGrid" hidden>
+              LOAD MORE <span class="album-pagination__count">+<span id="albumLoadMoreCount">8</span></span>
+              <span class="album-pagination__arrow" aria-hidden="true">↓</span>
+            </button>
           </div>
           <p class="albums-section__footnote">THE BEAUTY IS IN THE IN-BETWEEN <span>·</span> © <span id="currentYear">2026</span></p>
         </div>
@@ -132,7 +154,8 @@
         <div><p class="modal-eyebrow" id="galleryCategory">PHOTO ALBUM</p><h2 id="galleryTitle">ALBUM TITLE</h2><p id="galleryDescription"></p></div>
         <div class="gallery-panel__tools">
           <span id="galleryCount" class="gallery-count"></span>
-          <button class="outline-button admin-only" id="addPhotoButton" type="button" hidden>+ TAMBAH FOTO</button>
+          <button class="outline-button admin-only" id="editGalleryAlbum" type="button" hidden>EDIT ALBUM</button>
+          <button class="outline-button outline-button--accent admin-only" id="addPhotoButton" type="button" hidden>+ TAMBAH FOTO</button>
           <button class="modal-close" type="button" data-close="galleryModal" aria-label="Tutup galeri">×</button>
         </div>
       </header>
@@ -179,6 +202,12 @@
       <form id="siteForm" class="editor-form">
         <div class="form-grid"><div><label for="siteBrand">Nama brand</label><input id="siteBrand" name="brandName" maxlength="50" required></div><div><label for="siteBrandTagline">Tagline brand</label><input id="siteBrandTagline" name="brandTagline" maxlength="50"></div></div>
         <div class="form-grid"><div><label for="siteEmail">Email kontak</label><input id="siteEmail" name="contactEmail" type="email" required></div><div><label for="siteInstagram">URL Instagram</label><input id="siteInstagram" name="instagramUrl" type="url" placeholder="https://instagram.com/username"></div></div>
+        <div class="editor-divider"><span>PROFIL FOTOGRAFER · BAGIAN RINGKAS DI BAWAH HERO</span></div>
+        <div class="form-grid"><div><label for="siteProfileName">Nama fotografer</label><input id="siteProfileName" name="profileName" maxlength="70" placeholder="Nama Anda"></div><div><label for="siteProfileRole">Profesi / tagline singkat</label><input id="siteProfileRole" name="profileRole" maxlength="90" placeholder="PHOTOGRAPHER · VISUAL STORYTELLER"></div></div>
+        <label for="siteProfileBio">Bio singkat (maksimal 160 karakter)</label><textarea id="siteProfileBio" name="profileBio" rows="2" maxlength="160" placeholder="Ceritakan gaya dan fokus fotografi Anda secara singkat."></textarea>
+        <label for="siteProfilePhoto">URL foto profil (unggah dahulu ke ImageKit)</label><input id="siteProfilePhoto" name="profilePhotoUrl" type="url" placeholder="https://ik.imagekit.io/akun/profile.jpg">
+        <p class="field-hint">Foto ditampilkan dalam frame bulat berdiameter ±88px. Jika URL dikosongkan, akan tampil inisial nama sebagai pengganti.</p>
+        <div class="editor-divider"><span>FEATURED STORY & KONTAK</span></div>
         <label for="siteStoryEyebrow">Label kecil section story</label><input id="siteStoryEyebrow" name="storyEyebrow" maxlength="80">
         <label for="siteStoryTitle">Judul story (gunakan Enter untuk baris baru)</label><textarea id="siteStoryTitle" name="storyTitle" rows="2" maxlength="110" required></textarea>
         <label for="siteStoryDescription">Deskripsi story</label><textarea id="siteStoryDescription" name="storyDescription" rows="3" maxlength="320"></textarea>
@@ -233,6 +262,7 @@
       <p class="modal-eyebrow">EDITOR · PHOTO</p><h2 id="photoFormTitle">TAMBAH FOTO</h2>
       <form id="photoForm" class="editor-form">
         <input type="hidden" name="photoAlbumId" id="photoAlbumId"><input type="hidden" name="photoId" id="photoId">
+        <p class="field-hint">Cara menambahkan: upload file terlebih dahulu di <a href="https://imagekit.io/dashboard" target="_blank" rel="noopener noreferrer">ImageKit Media Library ↗</a>, salin URL publik foto, lalu tempel di kolom berikut. Website tidak mengunggah file langsung.</p>
         <label for="photoUrl">URL foto ImageKit / HTTPS lainnya</label><input id="photoUrl" name="url" type="url" required placeholder="https://ik.imagekit.io/akun/album/photo.jpg">
         <div class="form-grid"><div><label for="photoTitle">Judul foto</label><input id="photoTitle" name="title" required maxlength="100"></div><div><label for="photoCategory">Kategori foto</label><input id="photoCategory" name="category" maxlength="60"></div></div>
         <label for="photoDescription">Deskripsi / cerita foto</label><textarea id="photoDescription" name="description" rows="2" maxlength="350"></textarea>
