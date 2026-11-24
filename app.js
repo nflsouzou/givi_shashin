@@ -9,16 +9,14 @@
    Security must be enforced by Firestore Security Rules (see firestore.rules).
    ============================================================================ */
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyDrQPZ8VKwY7go8sNL366lpzm4Pl75h6kk",
-  authDomain: "givi-cca58.firebaseapp.com",
-  projectId: "givi-cca58",
-  storageBucket: "givi-cca58.firebasestorage.app",
-  messagingSenderId: "390668829442",
-  appId: "1:390668829442:web:61f4230072315405d7b81b",
-  measurementId: "G-32F8BRRMXC"
+  apiKey: 'AIzaSyDrQPZ8VKwY7go8sNL366lpzm4Pl75h6kk',
+  authDomain: 'givi-cca58.firebaseapp.com',
+  projectId: 'givi-cca58',
+  storageBucket: 'givi-cca58.firebasestorage.app',
+  messagingSenderId: '390668829442',
+  appId: '1:390668829442:web:61f4230072315405d7b81b',
+  measurementId: 'G-32F8BRRMXC'
 };
 
 // Optional extra UI gate. Leave empty for any Firebase Auth account to see admin UI.
