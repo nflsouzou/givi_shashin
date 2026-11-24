@@ -9,9 +9,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=imagekit-robust-20261124-v3">
+  <link rel="stylesheet" href="./style.css?v=20261124-lightbox-fit-zoom-v2">
+  <style>body.is-booting #siteShell { visibility:hidden; } .boot-screen {position:fixed;inset:0;z-index:9999;background:#0B0E14;color:#F8FAFC;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;font:700 12px/1.5 Arial,sans-serif;letter-spacing:.2em}.boot-screen__mark{height:24px;width:24px;border:2px solid #e11d48;transform:rotate(45deg);animation:bootSpin 1.8s ease-in-out infinite}.boot-screen span{color:#94a3b8;font-size:10px;letter-spacing:.09em}.boot-screen button{border:1px solid #e11d48;background:transparent;color:white;padding:10px 18px}@keyframes bootSpin{50%{transform:rotate(135deg) scale(.8)}}</style>
 </head>
-<body>
+<body class="is-booting">
+  <div class="boot-screen" id="bootScreen" role="status" aria-live="polite">
+    <div class="boot-screen__mark" aria-hidden="true"></div>
+    <strong>GIVI SHASHIN</strong>
+    <span id="bootMessage">Loading portfolio…</span>
+    <button id="bootRetry" type="button" hidden onclick="location.reload()">RELOAD ↗</button>
+  </div>
   <a class="skip-link" href="#albums">Langsung ke album</a>
   <div class="site-shell" id="siteShell">
     <header class="site-header" id="siteHeader">
@@ -21,12 +28,16 @@
         <span class="brand__descriptor" id="brandTagline">PHOTO STORIES</span>
       </a>
       <nav class="nav" id="mainNav" aria-label="Navigasi utama">
-        <a class="nav__link is-active" href="#home">HOME</a>
-        <a class="nav__link" href="#albums">ALBUMS</a>
-        <a class="nav__link" href="#about">ABOUT</a>
-        <a class="nav__link" href="#contact">CONTACT</a>
+        <a class="nav__link is-active" href="#home" data-i18n="navHome">HOME</a>
+        <a class="nav__link" href="#albums" data-i18n="navAlbums">ALBUMS</a>
+        <a class="nav__link" href="#about" data-i18n="navAbout">ABOUT</a>
+        <a class="nav__link" href="#contact" data-i18n="navContact">CONTACT</a>
       </nav>
       <div class="header-actions">
+        <label for="languageSelect" class="sr-only">Website language</label>
+        <select id="languageSelect" class="language-select" aria-label="Website language">
+          <option value="en">EN</option><option value="id">ID</option><option value="ja">日本語</option>
+        </select>
         <button class="icon-button" id="searchToggle" type="button" aria-label="Cari dan filter album" aria-expanded="false" aria-controls="searchPanel">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"/><path d="m16 16 5 5"/></svg>
         </button>
@@ -55,24 +66,34 @@
             <p class="eyebrow eyebrow--light"><span class="eyebrow__rule"></span><span id="heroKicker">ART IN EVERY MOMENT</span></p>
             <h1 id="heroTitle">BEYOND<br>THE FRAME<span class="title-period">.</span></h1>
             <p class="hero__description" id="heroDescription">Menangkap cerita yang tak selalu dapat diungkapkan dengan kata-kata.</p>
-            <a class="text-action" href="#albums">EXPLORE MY WORK <span aria-hidden="true">↗</span></a>
+            <a class="text-action" href="#albums"><span data-i18n="explore">EXPLORE MY WORK</span> <span aria-hidden="true">↗</span></a>
           </div>
           <aside class="hero__highlights" aria-label="Pilih sorotan foto">
-            <div class="hero__highlights-label">SELECTED STORIES <span class="hero__label-line"></span></div>
-            <div id="highlightList" class="hero__highlight-list"></div>
+            <div class="hero__highlights-label"><span data-i18n="featuredHighlights">FEATURED HIGHLIGHTS</span><span class="hero__label-line"></span></div>
+            <div class="hero__highlight-list" id="highlightList" tabindex="0" aria-label="Scroll highlights with mouse wheel"></div>
+            <button type="button" class="hero__add-highlight admin-only" id="addHighlightButton" hidden>+ ADD HIGHLIGHT</button>
+            <div class="highlight-nav highlight-nav--side" aria-label="Highlight navigation">
+              <button type="button" data-highlight-nav="-1" aria-label="Previous highlights">←</button>
+              <span id="highlightWindowStatus" aria-live="polite">01–03</span>
+              <button type="button" data-highlight-nav="1" aria-label="Next highlights">→</button>
+            </div>
           </aside>
           <div class="hero__bottom">
-            <div class="hero__teasers" id="heroTeasers" aria-label="Ringkasan sorotan"></div>
-            <div class="hero__scroll">SCROLL TO DISCOVER <span class="hero__scroll-line"></span></div>
+            <div class="hero__teaser-row">
+              <button type="button" class="hero__carousel-arrow" data-highlight-nav="-1" aria-label="Previous highlights">‹</button>
+              <div class="hero__teasers" id="heroTeasers" aria-label="Three active highlights"></div>
+              <button type="button" class="hero__carousel-arrow" data-highlight-nav="1" aria-label="Next highlights">›</button>
+            </div>
+            <div class="hero__scroll"><span data-i18n="scrollDiscover">SCROLL TO DISCOVER</span> <span class="hero__scroll-line"></span></div>
           </div>
         </div>
-        <button type="button" class="editor-fab editor-fab--hero admin-only" id="editSiteButton" hidden>Edit Header / Story</button>
+        <button type="button" class="editor-fab editor-fab--hero admin-only" id="editSiteButton" hidden data-i18n="editSite">Edit Header / Story</button>
       </section>
 
       <!-- Compact profile / photographer introduction: between hero and albums -->
       <section class="profile-strip" id="profile" aria-labelledby="profileName">
         <div class="profile-strip__inner layout-width">
-          <p class="profile-strip__eyebrow">BEHIND THE LENS</p>
+          <p class="profile-strip__eyebrow" data-i18n="behindLens">BEHIND THE LENS</p>
           <div class="profile-strip__avatar" aria-label="Foto profil fotografer">
             <span class="profile-strip__placeholder" id="profileAvatarPlaceholder" aria-hidden="true">ME</span>
             <img id="profileAvatar" src="" alt="Foto profil fotografer" loading="lazy" hidden>
@@ -80,29 +101,29 @@
           <h2 id="profileName">YOUR NAME</h2>
           <p class="profile-strip__role" id="profileRole">PHOTOGRAPHER · VISUAL STORYTELLER</p>
           <p class="profile-strip__bio" id="profileBio">Saya mengabadikan manusia, perjalanan, dan cerita melalui cahaya.</p>
-          <button class="profile-strip__edit admin-only" id="editProfileButton" type="button" hidden>EDIT PROFIL ↗</button>
+          <button class="profile-strip__edit admin-only" id="editProfileButton" type="button" hidden data-i18n="editProfile">EDIT PROFIL ↗</button>
         </div>
       </section>
 
       <section class="albums-section" id="albums" aria-labelledby="albumsHeading">
         <div class="layout-width">
           <div class="section-heading">
-            <p class="section-heading__eyebrow">A COLLECTION OF MOMENTS</p>
-            <h2 id="albumsHeading">SELECTED <span>ALBUMS</span></h2>
-            <p class="section-heading__description">Berbagai sudut pandang, satu bahasa: cahaya.</p>
-            <button type="button" class="admin-add admin-only" id="addAlbumButton" hidden>+ TAMBAH ALBUM BARU</button>
+            <p class="section-heading__eyebrow" data-i18n="collection">A COLLECTION OF MOMENTS</p>
+            <h2 id="albumsHeading"><span data-i18n="selected">SELECTED</span> <span data-i18n="albums">ALBUMS</span></h2>
+            <p class="section-heading__description" data-i18n="albumsSubtitle">Berbagai sudut pandang, satu bahasa: cahaya.</p>
+            <button type="button" class="admin-add admin-only" id="addAlbumButton" hidden data-i18n="addAlbum">+ TAMBAH ALBUM BARU</button>
           </div>
           <div class="album-grid" id="albumGrid" aria-live="polite"></div>
           <div class="empty-state" id="albumEmpty" hidden>
             <span class="empty-state__icon">◎</span>
             <h3>Belum ada album yang cocok</h3>
             <p>Coba pencarian atau kategori lainnya.</p>
-            <button type="button" class="outline-button" id="resetFilters">RESET FILTER</button>
+            <button type="button" class="outline-button" id="resetFilters" data-i18n="resetFilter">RESET FILTER</button>
           </div>
           <div class="album-pagination" aria-label="Navigasi album">
             <p class="album-pagination__status" id="albumPagerStatus" role="status" aria-live="polite" hidden></p>
             <button type="button" id="albumLoadMore" class="album-pagination__button" aria-controls="albumGrid" hidden>
-              LOAD MORE <span class="album-pagination__count">+<span id="albumLoadMoreCount">8</span></span>
+              <span data-i18n="loadMore">LOAD MORE</span> <span class="album-pagination__count">+<span id="albumLoadMoreCount">8</span></span>
               <span class="album-pagination__arrow" aria-hidden="true">↓</span>
             </button>
           </div>
@@ -118,7 +139,7 @@
             <p class="eyebrow eyebrow--light"><span class="eyebrow__rule"></span><span id="storyEyebrow">THE ART OF OBSERVING</span></p>
             <h2 id="storyTitle">EVERY FRAME<br>HAS A STORY<span class="title-period">.</span></h2>
             <p id="storyDescription">Sebuah perjalanan tentang cahaya, ruang, manusia dan momen yang hanya hadir sekali.</p>
-            <a href="#contact" class="play-action"><span class="play-action__symbol" aria-hidden="true">↗</span> LET'S CREATE SOMETHING</a>
+            <a href="#contact" class="play-action"><span class="play-action__symbol" aria-hidden="true">↗</span> <span data-i18n="create">LET'S CREATE SOMETHING</span></a>
           </div>
           <div class="showcase__bottom">
             <p class="showcase__statement" id="aboutIntro">I believe the best photographs don't just show us the world — they make us feel it.</p>
@@ -130,19 +151,19 @@
       <section class="contact-section" id="contact">
         <div class="layout-width contact-section__inner">
           <div>
-            <p class="section-heading__eyebrow">YOUR STORY, THROUGH MY LENS</p>
-            <h2>LET'S MAKE<br><span>IT TIMELESS.</span></h2>
+            <p class="section-heading__eyebrow" data-i18n="contactEyebrow">YOUR STORY, THROUGH MY LENS</p>
+            <h2><span data-i18n="contactHead1">LET'S MAKE</span><br><span data-i18n="contactHead2">IT TIMELESS.</span></h2>
           </div>
           <div class="contact-section__right">
-            <p>Punya ide pemotretan, proyek editorial, atau kolaborasi? Saya ingin mendengarnya.</p>
-            <a id="contactEmail" class="contact-section__mail" href="mailto:hello@example.com">LET'S TALK <span aria-hidden="true">↗</span></a>
+            <p data-i18n="contactBody">Punya ide pemotretan, proyek editorial, atau kolaborasi? Saya ingin mendengarnya.</p>
+            <a id="contactEmail" class="contact-section__mail" href="mailto:hello@example.com"><span data-i18n="letsTalk">LET'S TALK</span> <span aria-hidden="true">↗</span></a>
             <a id="instagramLink" class="contact-section__social" href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer">INSTAGRAM ↗</a>
           </div>
         </div>
       </section>
     </main>
     <footer class="footer layout-width">
-      <span id="footerBrand">ATELIER.</span><span>INDEPENDENT PHOTOGRAPHY PORTFOLIO</span><span>© <span id="footerYear">2026</span> ALL RIGHTS RESERVED</span>
+      <span id="footerBrand">ATELIER.</span><span data-i18n="footerDescriptor">INDEPENDENT PHOTOGRAPHY PORTFOLIO</span><span>© <span id="footerYear">2026</span> <span data-i18n="rights">ALL RIGHTS RESERVED</span></span>
     </footer>
   </div>
 
@@ -154,22 +175,32 @@
         <div><p class="modal-eyebrow" id="galleryCategory">PHOTO ALBUM</p><h2 id="galleryTitle">ALBUM TITLE</h2><p id="galleryDescription"></p></div>
         <div class="gallery-panel__tools">
           <span id="galleryCount" class="gallery-count"></span>
-          <button class="outline-button admin-only" id="editGalleryAlbum" type="button" hidden>EDIT ALBUM</button>
-          <button class="outline-button outline-button--accent admin-only" id="addPhotoButton" type="button" hidden>+ TAMBAH FOTO</button>
-          <button class="modal-close" type="button" data-close="galleryModal" aria-label="Tutup galeri">×</button>
+          <button class="outline-button admin-only" id="editGalleryAlbum" type="button" hidden data-i18n="editAlbum">EDIT ALBUM</button>
+          <button class="outline-button outline-button--accent admin-only" id="addPhotoButton" type="button" hidden data-i18n="addPhoto">+ TAMBAH FOTO</button>
+          <button class="modal-close" type="button" data-close="galleryModal" aria-label="Tutup galeri"><span class="close-icon" aria-hidden="true"></span></button>
         </div>
       </header>
-      <div class="gallery-panel__scroll"><div class="masonry" id="galleryMasonry"></div><div class="gallery-empty" id="galleryEmpty" hidden>Album ini belum memiliki foto.</div></div>
+      <div class="gallery-panel__scroll"><div class="masonry" id="galleryMasonry"></div><div class="gallery-empty" id="galleryEmpty" hidden data-i18n="noPhotos">Album ini belum memiliki foto.</div></div>
     </div>
   </div>
 
   <!-- Modal: lightbox -->
   <div class="modal modal--lightbox" id="lightboxModal" role="dialog" aria-modal="true" aria-label="Pratinjau foto layar penuh" hidden>
     <div class="lightbox">
-      <button class="lightbox__close" data-close="lightboxModal" type="button" aria-label="Tutup foto">×</button>
-      <button class="lightbox__arrow lightbox__arrow--prev" id="prevPhoto" type="button" aria-label="Foto sebelumnya">‹</button>
-      <div class="lightbox__stage"><img id="lightboxImage" alt="Foto album" loading="eager"></div>
-      <button class="lightbox__arrow lightbox__arrow--next" id="nextPhoto" type="button" aria-label="Foto berikutnya">›</button>
+      <button class="lightbox__close" data-close="lightboxModal" type="button" aria-label="Tutup foto"><span class="close-icon" aria-hidden="true"></span></button>
+      <div class="lightbox__stage" id="lightboxStage">
+        <div class="lightbox__viewport" id="lightboxViewport" aria-label="Foto; putar roda mouse untuk zoom, seret untuk menggeser jika diperbesar">
+          <img id="lightboxImage" alt="Foto album" draggable="false" loading="eager">
+        </div>
+        <div class="lightbox__zoom-controls" role="group" aria-label="Kontrol zoom foto">
+          <button id="zoomOutPhoto" type="button" aria-label="Perkecil foto">−</button>
+          <output id="lightboxZoomLevel" aria-live="off">100%</output>
+          <button id="zoomInPhoto" type="button" aria-label="Perbesar foto">+</button>
+          <button id="zoomResetPhoto" class="lightbox__zoom-reset" type="button" aria-label="Tampilkan seluruh foto">FIT</button>
+        </div>
+        <button class="lightbox__arrow lightbox__arrow--prev" id="prevPhoto" type="button" aria-label="Foto sebelumnya">‹</button>
+        <button class="lightbox__arrow lightbox__arrow--next" id="nextPhoto" type="button" aria-label="Foto berikutnya">›</button>
+      </div>
       <div class="lightbox__info">
         <div class="lightbox__caption"><p id="lightboxCounter"></p><h3 id="lightboxTitle"></h3><p id="lightboxDescription"></p></div>
         <dl id="lightboxExif" class="exif-grid"></dl>
@@ -181,7 +212,7 @@
   <div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle" hidden>
     <div class="modal__backdrop" data-close="loginModal"></div>
     <div class="form-panel form-panel--compact">
-      <button class="modal-close" type="button" data-close="loginModal" aria-label="Tutup">×</button>
+      <button class="modal-close" type="button" data-close="loginModal" aria-label="Tutup"><span class="close-icon" aria-hidden="true"></span></button>
       <p class="modal-eyebrow">PRIVATE ACCESS</p><h2 id="loginTitle">ADMIN LOGIN</h2><p class="form-panel__intro">Masuk menggunakan akun Email/Password yang telah dibuat di Firebase Authentication.</p>
       <p class="setup-notice" id="firebaseNotice" hidden>Mode demo aktif. Lengkapi konfigurasi Firebase pada <code>app.js</code> untuk mengaktifkan login.</p>
       <form id="loginForm">
@@ -197,9 +228,15 @@
   <div class="modal" id="siteModal" role="dialog" aria-modal="true" aria-labelledby="siteModalTitle" hidden>
     <div class="modal__backdrop" data-close="siteModal"></div>
     <div class="form-panel form-panel--wide">
-      <button class="modal-close" type="button" data-close="siteModal" aria-label="Tutup">×</button>
+      <button class="modal-close" type="button" data-close="siteModal" aria-label="Tutup"><span class="close-icon" aria-hidden="true"></span></button>
       <p class="modal-eyebrow">EDITOR · GLOBAL SETTINGS</p><h2 id="siteModalTitle">EDIT HEADER & STORY</h2>
       <form id="siteForm" class="editor-form">
+        <div class="editor-divider"><span>HERO / LANGUAGE SETTINGS</span></div>
+        <div class="form-grid">
+          <div><label for="siteAutoSeconds">Auto slide (detik, 0 = OFF)</label><input id="siteAutoSeconds" name="autoSlideSeconds" type="number" min="0" max="120" step="1" value="6"></div>
+          <div><label for="siteDefaultLanguage">Bahasa default website</label><select id="siteDefaultLanguage" name="defaultLanguage"><option value="en">English</option><option value="id">Indonesia</option><option value="ja">日本語</option></select></div>
+        </div>
+        <div class="form-grid editor-lang-guide"><div><label for="siteEditLanguage">Edit teks untuk bahasa</label><select id="siteEditLanguage"><option value="en">English</option><option value="id">Indonesia</option><option value="ja">日本語</option></select></div><p>Ubah bahasa di sini untuk mengisi judul/bio/deskripsi per bahasa. URL gambar dan nama brand digunakan bersama.</p></div>
         <div class="form-grid"><div><label for="siteBrand">Nama brand</label><input id="siteBrand" name="brandName" maxlength="50" required></div><div><label for="siteBrandTagline">Tagline brand</label><input id="siteBrandTagline" name="brandTagline" maxlength="50"></div></div>
         <div class="form-grid"><div><label for="siteEmail">Email kontak</label><input id="siteEmail" name="contactEmail" type="email" required></div><div><label for="siteInstagram">URL Instagram</label><input id="siteInstagram" name="instagramUrl" type="url" placeholder="https://instagram.com/username"></div></div>
         <div class="editor-divider"><span>PROFIL FOTOGRAFER · BAGIAN RINGKAS DI BAWAH HERO</span></div>
@@ -233,16 +270,17 @@
   <div class="modal" id="highlightModal" role="dialog" aria-modal="true" aria-labelledby="highlightModalTitle" hidden>
     <div class="modal__backdrop" data-close="highlightModal"></div>
     <div class="form-panel form-panel--wide">
-      <button class="modal-close" type="button" data-close="highlightModal" aria-label="Tutup">×</button>
+      <button class="modal-close" type="button" data-close="highlightModal" aria-label="Tutup"><span class="close-icon" aria-hidden="true"></span></button>
       <p class="modal-eyebrow">EDITOR · HERO SLIDE</p><h2 id="highlightModalTitle">EDIT HIGHLIGHT</h2>
       <form id="highlightForm" class="editor-form">
         <input type="hidden" name="highlightIndex" id="highlightIndex">
+        <div class="form-grid editor-lang-guide"><div><label for="highlightEditLanguage">Edit teks highlight untuk bahasa</label><select id="highlightEditLanguage"><option value="en">English</option><option value="id">Indonesia</option><option value="ja">日本語</option></select></div><p>Headline dan deskripsi dapat berbeda per bahasa. Background tetap satu URL untuk semua bahasa.</p></div>
         <div class="form-grid"><div><label for="highlightLabel">Label di navigasi kanan</label><input id="highlightLabel" name="label" required maxlength="40"></div><div><label for="highlightKicker">Label kecil di atas headline</label><input id="highlightKicker" name="kicker" maxlength="70"></div></div>
         <label for="highlightHeadline">Headline besar (gunakan Enter untuk 2 baris)</label><textarea id="highlightHeadline" name="headline" rows="2" required maxlength="90"></textarea>
         <label for="highlightDescription">Deskripsi hero</label><textarea id="highlightDescription" name="description" rows="2" maxlength="240"></textarea>
         <label for="highlightImage">URL gambar hero / background</label><input id="highlightImage" name="imageUrl" type="url" required>
         <div class="form-grid"><div><label for="highlightCardTitle">Judul kartu ringkas</label><input id="highlightCardTitle" name="cardTitle" required maxlength="55"></div><div><label for="highlightCardDescription">Subteks kartu ringkas</label><input id="highlightCardDescription" name="cardDescription" maxlength="130"></div></div>
-        <div class="form-footer"><button class="outline-button" type="button" data-close="highlightModal">BATAL</button><button type="submit" class="solid-button">SIMPAN HIGHLIGHT ↗</button></div>
+        <div class="form-footer"><button class="outline-button" type="button" id="deleteHighlightButton" hidden>HAPUS HIGHLIGHT</button><button class="outline-button" type="button" data-close="highlightModal">BATAL</button><button type="submit" class="solid-button">SIMPAN HIGHLIGHT ↗</button></div>
       </form>
     </div>
   </div>
@@ -251,9 +289,10 @@
   <div class="modal" id="albumFormModal" role="dialog" aria-modal="true" aria-labelledby="albumFormTitle" hidden>
     <div class="modal__backdrop" data-close="albumFormModal"></div>
     <div class="form-panel">
-      <button class="modal-close" type="button" data-close="albumFormModal" aria-label="Tutup">×</button>
+      <button class="modal-close" type="button" data-close="albumFormModal" aria-label="Tutup"><span class="close-icon" aria-hidden="true"></span></button>
       <p class="modal-eyebrow">EDITOR · COLLECTION</p><h2 id="albumFormTitle">TAMBAH ALBUM</h2>
       <form id="albumForm" class="editor-form">
+        <div class="form-grid editor-lang-guide"><div><label for="albumEditLanguage">Bahasa judul & deskripsi album</label><select id="albumEditLanguage"><option value="en">English</option><option value="id">Indonesia</option><option value="ja">日本語</option></select></div><p>Isi judul dan deskripsi secara manual untuk setiap bahasa; kategori dan URL gambar digunakan bersama.</p></div>
         <input type="hidden" id="albumId" name="albumId">
         <label for="albumTitle">Judul album</label><input id="albumTitle" name="title" required maxlength="85">
         <div class="form-grid"><div><label for="albumCategory">Kategori</label><input id="albumCategory" name="category" placeholder="Travel / Portrait / Nature" maxlength="55" required></div><div><label for="albumOrder">Urutan tampilan</label><input id="albumOrder" name="sortOrder" type="number" step="1" min="0" value="0" required></div></div>
@@ -268,9 +307,10 @@
   <div class="modal" id="photoFormModal" role="dialog" aria-modal="true" aria-labelledby="photoFormTitle" hidden>
     <div class="modal__backdrop" data-close="photoFormModal"></div>
     <div class="form-panel form-panel--wide">
-      <button class="modal-close" type="button" data-close="photoFormModal" aria-label="Tutup">×</button>
+      <button class="modal-close" type="button" data-close="photoFormModal" aria-label="Tutup"><span class="close-icon" aria-hidden="true"></span></button>
       <p class="modal-eyebrow">EDITOR · PHOTO</p><h2 id="photoFormTitle">TAMBAH FOTO</h2>
       <form id="photoForm" class="editor-form">
+        <div class="form-grid editor-lang-guide"><div><label for="photoEditLanguage">Bahasa judul & deskripsi foto</label><select id="photoEditLanguage"><option value="en">English</option><option value="id">Indonesia</option><option value="ja">日本語</option></select></div><p>Judul dan cerita foto dapat diedit per bahasa. EXIF serta URL foto tetap sama.</p></div>
         <input type="hidden" name="photoAlbumId" id="photoAlbumId"><input type="hidden" name="photoId" id="photoId">
         <p class="field-hint">Cara menambahkan: upload file terlebih dahulu di <a href="https://imagekit.io/dashboard" target="_blank" rel="noopener noreferrer">ImageKit Media Library ↗</a>, salin URL publik foto, lalu tempel di kolom berikut. Website tidak mengunggah file langsung.</p>
         <label for="photoUrl">URL foto ImageKit / HTTPS lainnya</label><input id="photoUrl" name="url" type="url" required placeholder="https://ik.imagekit.io/akun/album/photo.jpg">
@@ -289,10 +329,11 @@
     <span class="admin-toolbar__status"><i></i> ADMIN MODE</span>
     <button id="adminEditSite" type="button">EDIT SITE</button>
     <button id="adminAddAlbum" type="button">+ ALBUM</button>
+    <button id="adminAddHighlight" type="button">+ HIGHLIGHT</button>
     <button id="adminImportDemo" type="button" hidden>IMPORT DEMO</button>
     <button id="adminLogout" type="button">LOGOUT ↗</button>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <script type="module" src="./app.js?v=imagekit-robust-20261124-v3"></script>
+  <script type="module" src="./app.js?v=20261124-lightbox-fit-zoom-v2"></script>
 </body>
 </html>
