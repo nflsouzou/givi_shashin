@@ -30,6 +30,8 @@ const unsplash = (id, width = 1600) =>
 
 const DEFAULT_SITE = {
   brandName: 'ATELIER.',
+  defaultLanguage: 'en',
+  autoSlideSeconds: 6,
   brandTagline: 'PHOTO STORIES',
   profileName: 'YOUR NAME',
   profileRole: 'PHOTOGRAPHER · VISUAL STORYTELLER',
@@ -122,6 +124,155 @@ const DEMO_ALBUMS = [
   }
 ];
 
+const LANGUAGES = ['en','id','ja'];
+const SITE_TRANSLATABLE = ['brandTagline','profileRole','profileBio','storyEyebrow','storyTitle','storyDescription','aboutIntro'];
+const HIGHLIGHT_TRANSLATABLE = ['label','kicker','headline','description','cardTitle','cardDescription'];
+const ALBUM_TRANSLATABLE = ['title','description'];
+const PHOTO_TRANSLATABLE = ['title','description'];
+const TRANSLATIONS = {
+  en: {
+    navHome:'HOME',navAlbums:'ALBUMS',navAbout:'ABOUT',navContact:'CONTACT',
+    explore:'EXPLORE MY WORK', featuredHighlights:'FEATURED HIGHLIGHTS', scrollDiscover:'SCROLL TO DISCOVER',
+    behindLens:'BEHIND THE LENS', collection:'A COLLECTION OF MOMENTS', selected:'SELECTED', albums:'ALBUMS',
+    albumsSubtitle:'Different perspectives, one language: light.',
+    contactEyebrow:'YOUR STORY, THROUGH MY LENS',contactHead1:"LET’S MAKE", contactHead2:'IT TIMELESS.',
+    contactBody:'Planning a portrait session, editorial project or collaboration? I would love to hear it.',
+    letsTalk:"LET’S TALK", all:'ALL', photo:'PHOTO',photos:'PHOTOS',
+    results:'Showing {shown} of {total} albums',loadMore:'LOAD MORE',albumExample:'DEMO · edit to publish',
+    addHighlight:'+ ADD HIGHLIGHT', added:'Highlight saved.', removed:'Highlight removed.',
+    noExif:'EXIF information is unavailable for this photo.',
+    albumEmpty:'No matching albums', albumEmptyText:'Try another search or category.',
+    create:'LET’S CREATE SOMETHING', selectedWork:'SELECTED WORK',
+    footerDescriptor:'INDEPENDENT PHOTOGRAPHY PORTFOLIO',rights:'ALL RIGHTS RESERVED',noPhotos:'No photos yet in this album.',resetFilter:'RESET FILTER',addAlbum:'+ ADD ALBUM',editProfile:'EDIT PROFILE ↗',editAlbum:'EDIT ALBUM',addPhoto:'+ ADD PHOTO',editSite:'Edit Header / Showcase'
+  },
+  id: {
+    navHome:'BERANDA',navAlbums:'ALBUM',navAbout:'TENTANG',navContact:'KONTAK',
+    explore:'JELAJAHI KARYA',featuredHighlights:'HIGHLIGHT PILIHAN',scrollDiscover:'GULIR UNTUK MELIHAT',
+    behindLens:'DI BALIK LENSA',collection:'KOLEKSI MOMEN',selected:'ALBUM',albums:'PILIHAN',
+    albumsSubtitle:'Berbagai sudut pandang, satu bahasa: cahaya.',
+    contactEyebrow:'CERITAMU, MELALUI LENSANYA',contactHead1:'ABADIKAN',contactHead2:'MOMEN BERHARGA.',
+    contactBody:'Punya ide pemotretan, proyek editorial, atau kolaborasi? Saya ingin mendengarnya.',
+    letsTalk:'HUBUNGI SAYA',all:'SEMUA', photo:'FOTO',photos:'FOTO',
+    results:'Menampilkan {shown} dari {total} album',loadMore:'LIHAT LAGI',albumExample:'DEMO · edit untuk menerbitkan',
+    addHighlight:'+ TAMBAH HIGHLIGHT',added:'Highlight tersimpan.',removed:'Highlight dihapus.',
+    noExif:'Data EXIF tidak tersedia untuk foto ini.',
+    albumEmpty:'Album tidak ditemukan', albumEmptyText:'Coba pencarian atau kategori lainnya.',
+    create:'MARI BERKOLABORASI',selectedWork:'KARYA PILIHAN',
+    footerDescriptor:'PORTOFOLIO FOTOGRAFI',rights:'HAK CIPTA DILINDUNGI',noPhotos:'Album ini belum memiliki foto.',resetFilter:'RESET FILTER',addAlbum:'+ TAMBAH ALBUM',editProfile:'EDIT PROFIL ↗',editAlbum:'EDIT ALBUM',addPhoto:'+ TAMBAH FOTO',editSite:'Edit Header / Showcase'
+  },
+  ja: {
+    navHome:'ホーム',navAlbums:'アルバム',navAbout:'プロフィール',navContact:'お問い合わせ',
+    explore:'作品を見る',featuredHighlights:'注目のハイライト',scrollDiscover:'スクロールして見る',
+    behindLens:'レンズの向こう',collection:'瞬間のコレクション',selected:'厳選',albums:'アルバム',
+    albumsSubtitle:'さまざまな視点をつなぐ、ひとつの光。',
+    contactEyebrow:'あなたの物語を、私のレンズで',contactHead1:'大切な瞬間を',contactHead2:'永遠に。',
+    contactBody:'撮影やコラボレーションについて、お気軽にご相談ください。',
+    letsTalk:'お問い合わせ',all:'すべて',photo:'写真',photos:'写真',
+    results:'{total}件中 {shown}件を表示',loadMore:'もっと見る',albumExample:'デモ · 編集して公開',
+    addHighlight:'+ ハイライトを追加',added:'ハイライトを保存しました。',removed:'ハイライトを削除しました。',
+    noExif:'EXIF情報はありません。',
+    albumEmpty:'アルバムが見つかりません', albumEmptyText:'別のキーワードやカテゴリをお試しください。',
+    create:'一緒に作品を作りましょう',selectedWork:'注目の作品',
+    footerDescriptor:'フォトグラフィーポートフォリオ',rights:'無断転載を禁じます',noPhotos:'このアルバムにはまだ写真がありません。',resetFilter:'絞り込みを解除',addAlbum:'+ アルバムを追加',editProfile:'プロフィールを編集 ↗',editAlbum:'アルバムを編集',addPhoto:'+ 写真を追加',editSite:'サイトを編集'
+  }
+};
+const t = (key) => TRANSLATIONS[state.language]?.[key] || TRANSLATIONS.en[key] || key;
+function translateContent(item, key) {
+  const localized = item?.translations?.[state.language]?.[key];
+  return typeof localized === 'string' && localized.trim() ? localized : (item?.[key] ?? '');
+}
+function formatted(key, vars = {}) {
+  return t(key).replace(/\{(\w+)\}/g, (_,name) => String(vars[name] ?? ''));
+}
+function applyLanguage(shouldRender = true) {
+  document.documentElement.lang = state.language;
+  el('languageSelect').value = state.language;
+  document.querySelectorAll('[data-i18n]').forEach((node) => { node.textContent = t(node.dataset.i18n); });
+  const empty = el('albumEmpty');
+  if (empty) {
+    const title = empty.querySelector('h3');
+    const description = empty.querySelector('p');
+    if (title) title.textContent = t('albumEmpty');
+    if (description) description.textContent = t('albumEmptyText');
+  }
+  el('searchInput').placeholder = state.language === 'ja' ? 'アルバムやカテゴリを検索…' : (state.language === 'id' ? 'Cari album, kategori, cerita…' : 'Search albums, categories, stories…');
+  if (shouldRender) {
+    renderBrandAndStory();
+    setSlide(state.activeSlide, false);
+    renderAlbums();
+    if (!el('galleryModal').hidden) renderGallery();
+    if (!el('lightboxModal').hidden) renderLightbox();
+  }
+}
+function setLanguage(value, explicit = true) {
+  if (!LANGUAGES.includes(value)) return;
+  state.language = value;
+  if (explicit) {
+    state.languageExplicit = true;
+    try { window.localStorage.setItem('givi-shashin-language', value); } catch { /* storage optional */ }
+  }
+  applyLanguage();
+}
+const clampSeconds = (value) => Math.max(0, Math.min(120, Number(value) || 0));
+let heroAutoTimer = null;
+function resetAutoSlide() {
+  clearInterval(heroAutoTimer);
+  heroAutoTimer = null;
+  const seconds = clampSeconds(state.site.autoSlideSeconds ?? 6);
+  if (!state.booted || seconds === 0 || getHighlights().length < 2 || document.hidden ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  heroAutoTimer = window.setInterval(() => {
+    setSlide((state.activeSlide + 1) % getHighlights().length);
+  }, seconds * 1000);
+}
+function updateHighlightWindow(delta) {
+  const count = getHighlights().length;
+  const max = Math.max(0, count - 3);
+  state.highlightOffset = Math.max(0, Math.min(max, state.highlightOffset + delta));
+  // Make a newly revealed highlight active, so navigation provides immediate feedback.
+  if (state.activeSlide < state.highlightOffset || state.activeSlide >= state.highlightOffset + 3) {
+    setSlide(delta < 0 ? state.highlightOffset : Math.min(count - 1, state.highlightOffset + 2));
+  } else renderHighlights();
+  resetAutoSlide();
+}
+function ensureActiveVisible() {
+  const total = getHighlights().length;
+  const max = Math.max(0,total - 3);
+  if (state.activeSlide < state.highlightOffset) state.highlightOffset = state.activeSlide;
+  if (state.activeSlide >= state.highlightOffset + 3) state.highlightOffset = state.activeSlide - 2;
+  state.highlightOffset = Math.max(0, Math.min(max, state.highlightOffset));
+}
+let wheelThrottleAt = 0;
+function onHighlightWheel(event) {
+  if (getHighlights().length <= 3 || Math.abs(event.deltaY) < 2) return;
+  const direction = Math.sign(event.deltaY);
+  const max = getHighlights().length - 3;
+  if ((direction < 0 && state.highlightOffset <= 0) || (direction > 0 && state.highlightOffset >= max)) return;
+  event.preventDefault();
+  if (performance.now() - wheelThrottleAt < 350) return;
+  wheelThrottleAt = performance.now();
+  updateHighlightWindow(direction);
+}
+function finishBoot(warning = '') {
+  if (state.booted) return;
+  state.booted = true;
+  if (warning) console.warn('[Givi Shashin]', warning);
+  applyLanguage(false);
+  renderBrandAndStory();
+  setSlide(Math.min(state.activeSlide, getHighlights().length - 1),true);
+  renderAlbums();
+  updateAdminUi();
+  resetAutoSlide();
+  const loader = el('bootScreen');
+  document.body.classList.remove('is-booting');
+  loader.hidden = true;
+  onScroll();
+}
+function setBootMessage(message) {
+  const node = el('bootMessage');
+  if (node) node.textContent = message;
+}
+
 const ALBUM_PAGE_SIZE = 8;
 
 const state = {
@@ -132,6 +283,10 @@ const state = {
   firebaseReady: false,
   albumsLoaded: false,
   activeSlide: 0,
+  highlightOffset: 0,
+  language: 'en',
+  languageExplicit: false,
+  booted: false,
   activeAlbumId: null,
   activePhotoIndex: 0,
   currentCategory: 'ALL',
@@ -269,8 +424,8 @@ function renderProfile() {
   const site = state.site;
   const name = String(site.profileName || DEFAULT_SITE.profileName).trim();
   el('profileName').textContent = name;
-  el('profileRole').textContent = site.profileRole || DEFAULT_SITE.profileRole;
-  el('profileBio').textContent = site.profileBio || DEFAULT_SITE.profileBio;
+  el('profileRole').textContent = translateContent(site, 'profileRole') || DEFAULT_SITE.profileRole;
+  el('profileBio').textContent = translateContent(site, 'profileBio') || DEFAULT_SITE.profileBio;
   const initials = name.split(/\s+/).filter(Boolean).slice(0,2)
     .map(part => part[0]).join('').toUpperCase() || 'ME';
   const placeholder = el('profileAvatarPlaceholder');
@@ -349,13 +504,13 @@ function renderBrandAndStory() {
   const site = state.site;
   renderProfile();
   el('brandName').textContent = site.brandName || DEFAULT_SITE.brandName;
-  el('brandTagline').textContent = site.brandTagline || 'PHOTO STORIES';
+  el('brandTagline').textContent = translateContent(site, 'brandTagline') || 'PHOTO STORIES';
   el('footerBrand').textContent = site.brandName || DEFAULT_SITE.brandName;
   document.title = `${site.brandName || 'ATELIER.'} — Photography Portfolio`;
-  el('storyEyebrow').textContent = site.storyEyebrow || '';
-  setHeadline('storyTitle', site.storyTitle || DEFAULT_SITE.storyTitle);
-  el('storyDescription').textContent = site.storyDescription || '';
-  el('aboutIntro').textContent = site.aboutIntro || '';
+  el('storyEyebrow').textContent = translateContent(site, 'storyEyebrow') || '';
+  setHeadline('storyTitle', translateContent(site, 'storyTitle') || DEFAULT_SITE.storyTitle);
+  el('storyDescription').textContent = translateContent(site, 'storyDescription') || '';
+  el('aboutIntro').textContent = translateContent(site, 'aboutIntro') || '';
   renderStoryBackground(site.storyImageUrl);
   const thumbs = [site.storyThumbOneUrl, site.storyThumbTwoUrl].filter((url) => safeUrl(url));
   el('storyThumbs').innerHTML = thumbs.map((url, i) =>
@@ -369,7 +524,10 @@ function renderBrandAndStory() {
 
 function getHighlights() {
   const raw = state.site.highlights;
-  return [0,1,2].map((i) => ({ ...DEFAULT_SITE.highlights[i], ...(raw && raw[i] ? raw[i] : {}) }));
+  if (Array.isArray(raw) && raw.length) {
+    return raw.map((item,i) => ({...DEFAULT_SITE.highlights[i % DEFAULT_SITE.highlights.length], ...item}));
+  }
+  return structuredClone(DEFAULT_SITE.highlights);
 }
 
 let storyBackgroundVersion = 0;
@@ -382,6 +540,7 @@ function renderStoryBackground(rawUrl) {
 }
 
 let heroBackgroundVersion = 0;
+let lastHeroImageUrl = null;
 function changeBackground(url, firstRender = false) {
   const version = ++heroBackgroundVersion;
   loadImageUrl(url, 'large', DEFAULT_SITE.highlights[0].imageUrl).then(source => {
@@ -408,30 +567,44 @@ function changeBackground(url, firstRender = false) {
 function setSlide(index, initial = false) {
   const slides = getHighlights();
   if (!Number.isInteger(index) || index < 0 || index >= slides.length) return;
+  const changed = index !== state.activeSlide;
   state.activeSlide = index;
+  ensureActiveVisible();
   const slide = slides[index];
-  el('heroKicker').textContent = slide.kicker || '';
-  setHeadline('heroTitle', slide.headline);
-  el('heroDescription').textContent = slide.description || '';
-  changeBackground(slide.imageUrl, initial);
+  el('heroKicker').textContent = translateContent(slide, 'kicker') || '';
+  setHeadline('heroTitle', translateContent(slide,'headline'));
+  el('heroDescription').textContent = translateContent(slide,'description') || '';
+  // Keep existing hero image on language-only changes; avoid an unwanted flash.
+  if (initial || changed || lastHeroImageUrl !== slide.imageUrl || !el('heroBgA').style.backgroundImage) {
+    lastHeroImageUrl = slide.imageUrl;
+    changeBackground(slide.imageUrl, initial);
+  }
   renderHighlights();
 }
-
 function renderHighlights() {
   const slides = getHighlights();
-  el('highlightList').innerHTML = slides.map((s,i) => `
+  const visible = slides.slice(state.highlightOffset, state.highlightOffset + 3);
+  const items = visible.map((slide,index) => ({slide, index:state.highlightOffset + index}));
+  el('highlightList').innerHTML = items.map(({slide,index:i}) => `
     <div class="highlight-item ${i === state.activeSlide ? 'is-active' : ''}">
       <button class="highlight-item__select" type="button" data-slide="${i}" aria-pressed="${i === state.activeSlide}">
-        <span>${e(s.label)}</span><span class="highlight-item__number">${capitalizeId(i)}</span>
+        <span>${e(translateContent(slide,'label'))}</span><span class="highlight-item__number">${capitalizeId(i)}</span>
       </button>
       ${state.admin ? `<button type="button" class="highlight-item__edit" data-edit-highlight="${i}" aria-label="Edit highlight ${i+1}">EDIT</button>` : ''}
     </div>`).join('');
-  el('heroTeasers').innerHTML = slides.map((s,i) => `
+  el('heroTeasers').innerHTML = items.map(({slide,index:i}) => `
     <button class="hero-teaser ${i === state.activeSlide ? 'is-active' : ''}" type="button" data-slide="${i}" aria-pressed="${i === state.activeSlide}">
-      <span class="hero-teaser__number">${capitalizeId(i)} / SELECTED WORK</span>
-      <strong class="hero-teaser__title">${e(s.cardTitle)}</strong>
-      <span class="hero-teaser__description">${e(s.cardDescription)}</span>
+      <span class="hero-teaser__number">${capitalizeId(i)} / ${e(t('selectedWork'))}</span>
+      <strong class="hero-teaser__title">${e(translateContent(slide,'cardTitle'))}</strong>
+      <span class="hero-teaser__description">${e(translateContent(slide,'cardDescription'))}</span>
     </button>`).join('');
+  const total = slides.length;
+  const status = el('highlightWindowStatus');
+  status.textContent = `${capitalizeId(state.highlightOffset)}–${String(Math.min(total, state.highlightOffset+3)).padStart(2,'0')} / ${String(total).padStart(2,'0')}`;
+  document.querySelectorAll('[data-highlight-nav]').forEach(button => {
+    button.disabled = total <= 3 || (Number(button.dataset.highlightNav) < 0 ? state.highlightOffset === 0 : state.highlightOffset >= total - 3);
+  });
+  el('addHighlightButton').textContent = t('addHighlight');
 }
 
 function renderFilters() {
@@ -439,7 +612,7 @@ function renderFilters() {
   const categories = ['ALL', ...available];
   if (!categories.includes(state.currentCategory)) state.currentCategory = 'ALL';
   el('categoryFilters').innerHTML = categories.map((category) =>
-    `<button type="button" class="filter-chip ${state.currentCategory === category ? 'is-selected':''}" data-filter="${e(category)}" aria-pressed="${state.currentCategory === category}">${category === 'ALL' ? 'SEMUA' : e(category)}</button>`
+    `<button type="button" class="filter-chip ${state.currentCategory === category ? 'is-selected':''}" data-filter="${e(category)}" aria-pressed="${state.currentCategory === category}">${category === 'ALL' ? e(t('all')) : e(category)}</button>`
   ).join('');
 }
 
@@ -447,7 +620,7 @@ function renderAlbums() {
   const query = state.currentQuery.trim().toLocaleLowerCase('id-ID');
   const selected = albumsToDisplay().slice().sort(bySortOrder).filter((album) => {
     const matchesCategory = state.currentCategory === 'ALL' || String(album.category || '').toUpperCase() === state.currentCategory;
-    const text = [album.title, album.description, album.category].join(' ').toLocaleLowerCase('id-ID');
+    const text = [album.title, album.description, album.category, translateContent(album,'title'), translateContent(album,'description')].join(' ').toLocaleLowerCase();
     return matchesCategory && (!query || text.includes(query));
   });
   const visible = selected.slice(0, state.visibleAlbumCount);
@@ -455,12 +628,12 @@ function renderAlbums() {
     const demo = isDemoAlbum(album);
     const cover = safeUrl(album.coverUrl) || safeUrl(normalizedPhotos(album)[0]?.url) || DEFAULT_SITE.highlights[0].imageUrl;
     return `<article class="album-card">
-      <button class="album-card__link" type="button" data-open-album="${e(album.id)}" aria-label="Buka album ${e(album.title)}">
+      <button class="album-card__link" type="button" data-open-album="${e(album.id)}" aria-label="Open album ${e(translateContent(album,'title'))}">
         <span class="album-card__image-wrap"><img class="album-card__image" loading="lazy" ${resilientImageAttrs(cover)} alt="Cover album ${e(album.title)}">
           <span class="album-card__type">${e(album.category || 'PORTFOLIO')}</span><span class="album-card__sequence">${capitalizeId(index)}</span></span>
-        <span class="album-card__info"><strong class="album-card__title">${e(album.title)}</strong><span class="album-card__description">${e(album.description || '')}</span></span>
+        <span class="album-card__info"><strong class="album-card__title">${e(translateContent(album,'title'))}</strong><span class="album-card__description">${e(translateContent(album,'description'))}</span></span>
       </button>
-      ${state.admin ? `<div class="album-card__actions"><button class="mini-button" type="button" data-edit-album="${e(album.id)}">EDIT ALBUM</button><button class="mini-button mini-button--danger" type="button" data-delete-album="${e(album.id)}">HAPUS</button></div>${demo ? '<p class="demo-tag">CONTOH · otomatis disimpan saat pertama kali diedit</p>' : ''}` : ''}
+      ${state.admin ? `<div class="album-card__actions"><button class="mini-button" type="button" data-edit-album="${e(album.id)}">EDIT ALBUM</button><button class="mini-button mini-button--danger" type="button" data-delete-album="${e(album.id)}">HAPUS</button></div>${demo ? `<p class="demo-tag">${e(t('albumExample'))}</p>` : ''}` : ''}
     </article>`;
   }).join('');
   el('albumEmpty').hidden = selected.length > 0;
@@ -472,7 +645,7 @@ function renderAlbums() {
   }
   const pagerStatus = el('albumPagerStatus');
   pagerStatus.hidden = selected.length <= ALBUM_PAGE_SIZE;
-  pagerStatus.textContent = `Menampilkan ${visible.length} dari ${selected.length} album`;
+  pagerStatus.textContent = formatted('results', {shown:visible.length, total:selected.length});
   renderFilters();
   refreshImportButton();
 }
@@ -508,6 +681,11 @@ function closeModal(id) {
   state.modalStack = state.modalStack.filter((modalId) => modalId !== id);
   if (!state.modalStack.length) document.body.classList.remove('modal-open');
   if (id === 'galleryModal') state.activeAlbumId = null;
+  if (id === 'lightboxModal') {
+    lightboxZoom.photoKey = '';
+    lightboxZoom.pointers.clear();
+    el('lightboxViewport').classList.remove('is-dragging');
+  }
   if (state.lastFocus && typeof state.lastFocus.focus === 'function') state.lastFocus.focus();
 }
 function closeTopModal() { if (state.modalStack.length) closeModal(state.modalStack[state.modalStack.length - 1]); }
@@ -524,19 +702,19 @@ function renderGallery() {
   if (!album) { if (!el('galleryModal').hidden) closeModal('galleryModal'); return; }
   const photos = normalizedPhotos(album);
   const demo = isDemoAlbum(album);
-  el('galleryTitle').textContent = album.title || 'PHOTO ALBUM';
+  el('galleryTitle').textContent = translateContent(album,'title') || 'PHOTO ALBUM';
   el('galleryCategory').textContent = album.category || 'PORTFOLIO';
-  el('galleryDescription').textContent = album.description || '';
-  el('galleryCount').textContent = `${photos.length} PHOTO${photos.length === 1 ? '' : 'S'}`;
+  el('galleryDescription').textContent = translateContent(album,'description') || '';
+  el('galleryCount').textContent = `${photos.length} ${t(photos.length === 1 ? 'photo' : 'photos')}`;
   el('addPhotoButton').hidden = !state.admin;
   el('editGalleryAlbum').hidden = !state.admin;
   el('galleryEmpty').hidden = photos.length > 0;
   el('galleryMasonry').innerHTML = photos.map((photo,i) => `
     <article class="masonry-item">
-      <button type="button" class="masonry-item__view" data-open-photo="${i}" aria-label="Buka foto ${e(photo.title || `Foto ${i+1}`)}">
-        <img loading="lazy" ${resilientImageAttrs(photo.url)} alt="${e(photo.title || `Foto ${i+1}`)}">
+      <button type="button" class="masonry-item__view" data-open-photo="${i}" aria-label="Open photo ${e(translateContent(photo,'title') || `Foto ${i+1}`)}">
+        <img loading="lazy" ${resilientImageAttrs(photo.url)} alt="${e(translateContent(photo,'title') || `Foto ${i+1}`)}">
       </button>
-      <span class="masonry-item__label">${e(photo.title || `FRAME ${capitalizeId(i)}`)}</span>
+      <span class="masonry-item__label">${e(translateContent(photo,'title') || `FRAME ${capitalizeId(i)}`)}</span>
       ${state.admin ? `<div class="masonry-item__admin"><button type="button" class="mini-button" data-edit-photo="${e(photo.id)}">EDIT</button><button type="button" class="mini-button mini-button--danger" data-delete-photo="${e(photo.id)}">HAPUS</button></div>` : ''}
     </article>`).join('');
 }
@@ -547,17 +725,24 @@ function openLightbox(index) {
   state.activePhotoIndex = index;
   renderLightbox();
   openModal('lightboxModal');
+  requestAnimationFrame(fitLightboxImage);
 }
 function renderLightbox() {
   const album = getAlbum(state.activeAlbumId);
   const photos = normalizedPhotos(album);
   const photo = photos[state.activePhotoIndex];
   if (!photo) { if (!el('lightboxModal').hidden) closeModal('lightboxModal'); return; }
-  setResilientImage(el('lightboxImage'), photo.url, 'large');
-  el('lightboxImage').alt = photo.title || 'Foto portofolio';
+  const photoKey = `${state.activeAlbumId}::${state.activePhotoIndex}::${photo.url}`;
+  if (lightboxZoom.photoKey !== photoKey) {
+    lightboxZoom.photoKey = photoKey;
+    lightboxZoom.ready = false;
+    el('lightboxImage').classList.remove('is-ready');
+    setResilientImage(el('lightboxImage'), photo.url, 'large');
+  }
+  el('lightboxImage').alt = translateContent(photo,'title') || 'Foto portofolio';
   el('lightboxCounter').textContent = `${album.title} · ${capitalizeId(state.activePhotoIndex)} / ${String(photos.length).padStart(2,'0')}`;
-  el('lightboxTitle').textContent = photo.title || 'UNTITLED FRAME';
-  el('lightboxDescription').textContent = photo.description || '';
+  el('lightboxTitle').textContent = translateContent(photo,'title') || 'UNTITLED FRAME';
+  el('lightboxDescription').textContent = translateContent(photo,'description') || '';
   const meta = photo.exif || {};
   const fields = [
     ['CAMERA', meta.camera], ['LENS', meta.lens], ['FOCAL LENGTH', meta.focalLength],
@@ -565,7 +750,7 @@ function renderLightbox() {
   ].filter(([,value]) => value !== '' && value != null);
   el('lightboxExif').innerHTML = fields.length ? fields.map(([key,value]) =>
     `<div><dt>${e(key)}</dt><dd>${e(value)}</dd></div>`).join('')
-    : '<span class="exif-grid__missing">Data EXIF tidak tersedia untuk foto ini.</span>';
+    : `<span class="exif-grid__missing">${e(t('noExif'))}</span>`;
   el('prevPhoto').hidden = photos.length <= 1;
   el('nextPhoto').hidden = photos.length <= 1;
 }
@@ -574,6 +759,169 @@ function navigatePhoto(delta) {
   if (!count) return;
   state.activePhotoIndex = (state.activePhotoIndex + delta + count) % count;
   renderLightbox();
+  requestAnimationFrame(fitLightboxImage);
+}
+
+
+// ---- Fullscreen lightbox: fit the ORIGINAL aspect ratio into the actual
+// visible viewport, then zoom around the position under the pointer.
+const lightboxZoom = {
+  photoKey: '', ready: false,
+  scale: 1, minScale: 1, maxScale: 6,
+  baseWidth: 0, baseHeight: 0, x: 0, y: 0,
+  pointers: new Map(), lastPinchDistance: 0, lastPinchCenter: null
+};
+const zoomViewport = () => el('lightboxViewport');
+function clampPhotoPosition() {
+  const viewport = zoomViewport();
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  const scaledWidth = lightboxZoom.baseWidth * lightboxZoom.scale;
+  const scaledHeight = lightboxZoom.baseHeight * lightboxZoom.scale;
+  lightboxZoom.x = scaledWidth <= w ? (w - scaledWidth) / 2
+    : Math.max(w - scaledWidth, Math.min(0, lightboxZoom.x));
+  lightboxZoom.y = scaledHeight <= h ? (h - scaledHeight) / 2
+    : Math.max(h - scaledHeight, Math.min(0, lightboxZoom.y));
+}
+function paintLightboxZoom() {
+  const img = el('lightboxImage');
+  img.style.transform = `translate3d(${lightboxZoom.x}px,${lightboxZoom.y}px,0) scale(${lightboxZoom.scale})`;
+  el('lightboxZoomLevel').textContent = `${Math.round(lightboxZoom.scale * 100)}%`;
+  zoomViewport().classList.toggle('is-zoomed', lightboxZoom.scale > 1.005);
+  el('zoomOutPhoto').disabled = !lightboxZoom.ready || lightboxZoom.scale <= 1.005;
+  el('zoomInPhoto').disabled = !lightboxZoom.ready || lightboxZoom.scale >= lightboxZoom.maxScale - .005;
+  el('zoomResetPhoto').disabled = !lightboxZoom.ready || lightboxZoom.scale <= 1.005;
+}
+function fitLightboxImage() {
+  if (el('lightboxModal').hidden) return;
+  const img = el('lightboxImage');
+  const viewport = zoomViewport();
+  if (!img.complete || !img.naturalWidth || !img.naturalHeight || !viewport.clientWidth || !viewport.clientHeight) return;
+  // A small margin makes the entire photo frame visible, including its edges.
+  const fitRatio = Math.min(
+    (viewport.clientWidth - 10) / img.naturalWidth,
+    (viewport.clientHeight - 10) / img.naturalHeight
+  );
+  lightboxZoom.baseWidth = Math.max(1, img.naturalWidth * fitRatio);
+  lightboxZoom.baseHeight = Math.max(1, img.naturalHeight * fitRatio);
+  lightboxZoom.scale = 1;
+  lightboxZoom.x = (viewport.clientWidth - lightboxZoom.baseWidth) / 2;
+  lightboxZoom.y = (viewport.clientHeight - lightboxZoom.baseHeight) / 2;
+  lightboxZoom.ready = true;
+  // Switching photos must fit instantly, not animate through the previous
+  // photo's size and position (which briefly crops the new image).
+  img.style.transition = 'none';
+  img.style.width = `${lightboxZoom.baseWidth}px`;
+  img.style.height = `${lightboxZoom.baseHeight}px`;
+  paintLightboxZoom();
+  img.classList.add('is-ready');
+  void img.offsetWidth; // commit the fit transform before restoring smooth zoom
+  requestAnimationFrame(() => { img.style.removeProperty('transition'); });
+}
+function lightboxZoomAt(nextScale, atX, atY) {
+  if (!lightboxZoom.ready) return;
+  const prevScale = lightboxZoom.scale;
+  const next = Math.max(lightboxZoom.minScale, Math.min(lightboxZoom.maxScale, nextScale));
+  if (Math.abs(next - prevScale) < .0001) return;
+  const ratio = next / prevScale;
+  lightboxZoom.x = atX - (atX - lightboxZoom.x) * ratio;
+  lightboxZoom.y = atY - (atY - lightboxZoom.y) * ratio;
+  lightboxZoom.scale = next;
+  clampPhotoPosition();
+  paintLightboxZoom();
+}
+function zoomFromCenter(factor) {
+  const v = zoomViewport();
+  lightboxZoomAt(lightboxZoom.scale * factor, v.clientWidth / 2, v.clientHeight / 2);
+}
+function resetLightboxZoom() {
+  if (!lightboxZoom.ready) return;
+  const v = zoomViewport();
+  lightboxZoomAt(1, v.clientWidth / 2, v.clientHeight / 2);
+}
+function onLightboxWheel(event) {
+  if (!lightboxZoom.ready || el('lightboxModal').hidden) return;
+  event.preventDefault();
+  const rect = zoomViewport().getBoundingClientRect();
+  const delta = Math.max(-90, Math.min(90, event.deltaY));
+  const factor = Math.exp(-delta * .003);
+  lightboxZoomAt(lightboxZoom.scale * factor, event.clientX - rect.left, event.clientY - rect.top);
+}
+function onLightboxPointerDown(event) {
+  if (!lightboxZoom.ready) return;
+  if (event.pointerType === 'mouse' && event.button !== 0) return;
+  const viewport = zoomViewport();
+  lightboxZoom.pointers.set(event.pointerId, {x:event.clientX,y:event.clientY});
+  viewport.setPointerCapture?.(event.pointerId);
+  if (lightboxZoom.pointers.size === 1 && lightboxZoom.scale > 1) viewport.classList.add('is-dragging');
+  if (lightboxZoom.pointers.size === 2) {
+    viewport.classList.remove('is-dragging');
+    const [a,b] = [...lightboxZoom.pointers.values()];
+    lightboxZoom.lastPinchDistance = Math.hypot(a.x-b.x,a.y-b.y);
+    lightboxZoom.lastPinchCenter = {x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+  }
+}
+function onLightboxPointerMove(event) {
+  if (!lightboxZoom.pointers.has(event.pointerId)) return;
+  const prev = lightboxZoom.pointers.get(event.pointerId);
+  lightboxZoom.pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+  const pointers = [...lightboxZoom.pointers.values()];
+  if (pointers.length === 2) {
+    const [a,b] = pointers;
+    const distance = Math.hypot(a.x-b.x,a.y-b.y);
+    const center = {x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    if (lightboxZoom.lastPinchDistance > 0) {
+      const bounds = zoomViewport().getBoundingClientRect();
+      lightboxZoomAt(lightboxZoom.scale * distance / lightboxZoom.lastPinchDistance,
+        center.x-bounds.left,center.y-bounds.top);
+      if (lightboxZoom.lastPinchCenter && lightboxZoom.scale > 1) {
+        lightboxZoom.x += center.x - lightboxZoom.lastPinchCenter.x;
+        lightboxZoom.y += center.y - lightboxZoom.lastPinchCenter.y;
+        clampPhotoPosition(); paintLightboxZoom();
+      }
+    }
+    lightboxZoom.lastPinchDistance = distance;
+    lightboxZoom.lastPinchCenter = center;
+  } else if (lightboxZoom.scale > 1) {
+    lightboxZoom.x += event.clientX - prev.x;
+    lightboxZoom.y += event.clientY - prev.y;
+    clampPhotoPosition();
+    paintLightboxZoom();
+  }
+}
+function onLightboxPointerUp(event) {
+  lightboxZoom.pointers.delete(event.pointerId);
+  if (zoomViewport().hasPointerCapture?.(event.pointerId)) zoomViewport().releasePointerCapture(event.pointerId);
+  if (lightboxZoom.pointers.size < 2) {
+    lightboxZoom.lastPinchDistance = 0;
+    lightboxZoom.lastPinchCenter = null;
+  }
+  if (!lightboxZoom.pointers.size) zoomViewport().classList.remove('is-dragging');
+}
+function installLightboxZoom() {
+  const viewport = zoomViewport();
+  el('lightboxImage').addEventListener('load', () => requestAnimationFrame(fitLightboxImage));
+  viewport.addEventListener('wheel', onLightboxWheel, {passive:false});
+  viewport.addEventListener('dblclick', event => {
+    event.preventDefault();
+    const rect=viewport.getBoundingClientRect();
+    lightboxZoomAt(lightboxZoom.scale > 1.05 ? 1 : 2.5,
+      event.clientX-rect.left,event.clientY-rect.top);
+  });
+  viewport.addEventListener('pointerdown', onLightboxPointerDown);
+  viewport.addEventListener('pointermove', onLightboxPointerMove);
+  viewport.addEventListener('pointerup', onLightboxPointerUp);
+  viewport.addEventListener('pointercancel', onLightboxPointerUp);
+  el('zoomOutPhoto').addEventListener('click', () => zoomFromCenter(1 / 1.4));
+  el('zoomInPhoto').addEventListener('click', () => zoomFromCenter(1.4));
+  el('zoomResetPhoto').addEventListener('click', resetLightboxZoom);
+  // Layout changes affect the fit area; recalculating prevents cropped photos.
+  if ('ResizeObserver' in window) {
+    const resizeObserver = new ResizeObserver(() => {
+      if (!el('lightboxModal').hidden && lightboxZoom.ready) fitLightboxImage();
+    });
+    resizeObserver.observe(viewport);
+  } else window.addEventListener('resize', () => requestAnimationFrame(fitLightboxImage));
+  paintLightboxZoom();
 }
 
 function isFirebaseConfigured() {
@@ -585,8 +933,12 @@ function isFirebaseConfigured() {
 
 async function startFirebase() {
   el('firebaseNotice').hidden = isFirebaseConfigured();
-  if (!isFirebaseConfigured()) return; // Fully functional visual demo without network requests to Firebase.
+  if (!isFirebaseConfigured()) {
+    finishBoot('Firebase belum diatur; menampilkan contoh.');
+    return;
+  }
   try {
+    setBootMessage('Connecting to Firebase…');
     const [appSdk, authSdk, firestoreSdk] = await Promise.all([
       import(`${FIREBASE_CDN}/firebase-app.js`),
       import(`${FIREBASE_CDN}/firebase-auth.js`),
@@ -600,40 +952,67 @@ async function startFirebase() {
     state.firebaseReady = true;
     el('firebaseNotice').hidden = true;
 
-    authSdk.onAuthStateChanged(firebase.auth, (user) => {
+    authSdk.onAuthStateChanged(firebase.auth, user => {
       state.user = user;
       state.admin = !!user && (!ADMIN_UID || user.uid === ADMIN_UID);
-      updateAdminUi();
-      if (user && !state.admin) toast('Akun ini tidak termasuk daftar admin.', true);
-    }, (error) => toast(`Autentikasi bermasalah: ${friendlyError(error)}`, true));
+      if (state.booted) updateAdminUi();
+      if (user && !state.admin) toast('Akun ini tidak diizinkan mengedit.', true);
+    }, error => toast(`Autentikasi bermasalah: ${friendlyError(error)}`, true));
 
     const settingsDoc = firestoreSdk.doc(firebase.db, 'site_settings', 'main');
-    firebase.unsubscribers.push(firestoreSdk.onSnapshot(settingsDoc, (snapshot) => {
-      if (snapshot.exists()) {
-        state.site = { ...structuredClone(DEFAULT_SITE), ...snapshot.data() };
-      } else {
-        state.site = structuredClone(DEFAULT_SITE);
-      }
-      renderBrandAndStory();
-      setSlide(state.activeSlide);
-    }, (error) => toast(`Gagal membaca site_settings: ${friendlyError(error)}`, true)));
-
     const albumsCol = firestoreSdk.collection(firebase.db, 'albums');
-    firebase.unsubscribers.push(firestoreSdk.onSnapshot(albumsCol, (snapshot) => {
-      state.albums = snapshot.docs.map((docSnap) => ({
-        ...docSnap.data(), id: docSnap.id,
-        photos: Array.isArray(docSnap.data().photos) ? docSnap.data().photos : []
-      }));
-      state.albumsLoaded = true;
-      renderAlbums();
-      if (!el('galleryModal').hidden) renderGallery();
-      if (!el('lightboxModal').hidden) renderLightbox();
-    }, (error) => toast(`Gagal membaca albums: ${friendlyError(error)}`, true)));
+    // Server-first: do NOT render the built-in demo until both latest server
+    // snapshots are available. This prevents stale/default content flashing.
+    setBootMessage('Loading your latest portfolio…');
+    const [settingsSnapshot, albumsSnapshot] = await Promise.all([
+      firestoreSdk.getDocFromServer(settingsDoc),
+      firestoreSdk.getDocsFromServer(albumsCol)
+    ]);
+    applySettingsSnapshot(settingsSnapshot);
+    applyAlbumsSnapshot(albumsSnapshot);
+    finishBoot();
+    // Continue listening to changes from this and other admin sessions.
+    firebase.unsubscribers.push(firestoreSdk.onSnapshot(settingsDoc, snapshot => {
+      if (!state.booted) return;
+      applySettingsSnapshot(snapshot);
+      applyLanguage();
+      resetAutoSlide();
+    }, error => toast(`Gagal membaca site_settings: ${friendlyError(error)}`, true)));
+    firebase.unsubscribers.push(firestoreSdk.onSnapshot(albumsCol, snapshot => {
+      applyAlbumsSnapshot(snapshot);
+      if (state.booted) {
+        renderAlbums();
+        if (!el('galleryModal').hidden) renderGallery();
+        if (!el('lightboxModal').hidden) renderLightbox();
+      }
+    }, error => toast(`Gagal membaca albums: ${friendlyError(error)}`, true)));
   } catch (error) {
-    state.firebaseReady = false;
-    el('firebaseNotice').hidden = false;
-    toast(`Firebase gagal dimuat. Situs tetap tampil dalam mode demo. ${friendlyError(error)}`, true);
+    // When the configured Firestore is unavailable, never show an out-of-date
+    // default portfolio as though it were the user's actual data.
+    console.error('[Givi Shashin] Tidak dapat mengambil data Firestore terbaru:', error);
+    setBootMessage(`Unable to load the latest portfolio: ${friendlyError(error)}`);
+    el('bootRetry').hidden = false;
   }
+}
+function applySettingsSnapshot(snapshot) {
+  state.site = snapshot.exists()
+    ? { ...structuredClone(DEFAULT_SITE), ...snapshot.data() }
+    : structuredClone(DEFAULT_SITE);
+  const localLang = (() => {
+    try { return window.localStorage.getItem('givi-shashin-language'); }
+    catch { return null; }
+  })();
+  if (!state.languageExplicit) state.language = LANGUAGES.includes(localLang) ? localLang :
+    (LANGUAGES.includes(state.site.defaultLanguage) ? state.site.defaultLanguage : 'en');
+  state.activeSlide = Math.max(0,Math.min(state.activeSlide,getHighlights().length - 1));
+  ensureActiveVisible();
+}
+function applyAlbumsSnapshot(snapshot) {
+  state.albums = snapshot.docs.map(docSnap => ({
+    ...docSnap.data(), id:docSnap.id,
+    photos:Array.isArray(docSnap.data().photos) ? docSnap.data().photos : []
+  }));
+  state.albumsLoaded = true;
 }
 
 function friendlyError(error) {
@@ -691,15 +1070,37 @@ async function doLogout() {
   } catch (error) { toast(friendlyError(error), true); }
 }
 
+let siteEditorDraft = {};
+let siteEditorCurrentLanguage = 'en';
+function captureSiteLocale() {
+  const form = el('siteForm');
+  const draft = siteEditorDraft[siteEditorCurrentLanguage] || {};
+  for (const key of SITE_TRANSLATABLE) draft[key] = form.elements.namedItem(key).value;
+  siteEditorDraft[siteEditorCurrentLanguage] = draft;
+}
+function showSiteLocale(language) {
+  const form = el('siteForm');
+  siteEditorCurrentLanguage = language;
+  const draft = siteEditorDraft[language] || {};
+  for (const key of SITE_TRANSLATABLE) {
+    form.elements.namedItem(key).value = draft[key] ?? state.site[key] ?? '';
+  }
+}
 function openSiteEditor() {
   if (!requireAdmin()) return;
   const form = el('siteForm');
-  for (const key of ['brandName','brandTagline','contactEmail','profileName','profileRole','profileBio','profilePhotoUrl','storyEyebrow','storyTitle','storyDescription','storyImageUrl','aboutIntro']) {
+  for (const key of ['brandName','contactEmail','profileName','profilePhotoUrl','storyImageUrl']) {
     if (form.elements.namedItem(key)) form.elements.namedItem(key).value = state.site[key] || '';
   }
-  form.elements.namedItem('instagramUrl').value = state.site.instagramUrl || '';
-  form.elements.namedItem('storyThumbOneUrl').value = state.site.storyThumbOneUrl || '';
-  form.elements.namedItem('storyThumbTwoUrl').value = state.site.storyThumbTwoUrl || '';
+  for (const key of ['instagramUrl','storyThumbOneUrl','storyThumbTwoUrl']) {
+    form.elements.namedItem(key).value = state.site[key] || '';
+  }
+  form.elements.namedItem('autoSlideSeconds').value = clampSeconds(state.site.autoSlideSeconds ?? 6);
+  form.elements.namedItem('defaultLanguage').value = LANGUAGES.includes(state.site.defaultLanguage) ? state.site.defaultLanguage : 'en';
+  siteEditorDraft = structuredClone(state.site.translations || {});
+  siteEditorCurrentLanguage = state.language;
+  el('siteEditLanguage').value = state.language;
+  showSiteLocale(state.language);
   checkProfilePhotoUrl();
   openModal('siteModal');
   validateVisibleImageFields('siteModal');
@@ -707,59 +1108,112 @@ function openSiteEditor() {
 async function saveSite(event) {
   event.preventDefault();
   if (!requireAdmin()) return;
+  captureSiteLocale();
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
   for (const key of ['profilePhotoUrl','storyImageUrl','storyThumbOneUrl','storyThumbTwoUrl']) {
     if (data[key] && !safeUrl(data[key])) return toast(`URL HTTPS tidak valid: ${key}`, true);
   }
   if (data.instagramUrl && !safeUrl(data.instagramUrl)) return toast('URL Instagram harus HTTPS.', true);
+  data.autoSlideSeconds = clampSeconds(data.autoSlideSeconds);
+  data.defaultLanguage = LANGUAGES.includes(data.defaultLanguage) ? data.defaultLanguage : 'en';
+  data.translations = structuredClone(siteEditorDraft);
+  // Compatibility with pre-existing Firestore fields / future older clients.
+  for (const key of SITE_TRANSLATABLE) data[key] =
+    siteEditorDraft[data.defaultLanguage]?.[key] || state.site[key] || DEFAULT_SITE[key] || '';
   const button = form.querySelector('[type="submit"]');
   button.disabled = true;
   try {
     await firebase.fs.setDoc(firebase.fs.doc(firebase.db,'site_settings','main'), {
       ...data, updatedAt: firebase.fs.serverTimestamp()
-    }, { merge: true });
+    }, {merge:true});
     closeModal('siteModal');
-    toast('Profil, header, kontak, dan story berhasil disimpan.');
-  } catch (error) { toast(friendlyError(error), true); }
+    toast('Pengaturan, durasi slideshow dan bahasa berhasil disimpan.');
+  } catch(error) { toast(friendlyError(error),true); }
   finally { button.disabled = false; }
 }
 
-function openHighlightEditor(index) {
-  if (!requireAdmin()) return;
-  const slide = getHighlights()[index];
-  if (!slide) return;
+let highlightEditorDraft = {};
+let highlightEditorCurrentLanguage = 'en';
+function captureHighlightLocale() {
   const form = el('highlightForm');
-  el('highlightModalTitle').textContent = `EDIT HIGHLIGHT ${capitalizeId(index)}`;
-  for (const [key, value] of Object.entries(slide)) {
-    if (form.elements.namedItem(key)) form.elements.namedItem(key).value = value ?? '';
-  }
-  form.elements.namedItem('highlightIndex').value = index;
+  const draft = highlightEditorDraft[highlightEditorCurrentLanguage] || {};
+  for (const key of HIGHLIGHT_TRANSLATABLE) draft[key] = form.elements.namedItem(key).value;
+  highlightEditorDraft[highlightEditorCurrentLanguage] = draft;
+}
+function showHighlightLocale(language) {
+  const form = el('highlightForm');
+  const index = el('highlightIndex').value;
+  const slide = index === 'new' ? null : getHighlights()[Number(index)];
+  highlightEditorCurrentLanguage = language;
+  const draft = highlightEditorDraft[language] || {};
+  for (const key of HIGHLIGHT_TRANSLATABLE) form.elements.namedItem(key).value =
+    draft[key] ?? slide?.[key] ?? '';
+}
+function openHighlightEditor(index = 'new') {
+  if (!requireAdmin()) return;
+  const isNew = index === 'new';
+  const slide = isNew ? null : getHighlights()[Number(index)];
+  if (!isNew && !slide) return;
+  const form = el('highlightForm');
+  form.reset();
+  el('highlightModalTitle').textContent = isNew ? 'TAMBAH HIGHLIGHT' : `EDIT HIGHLIGHT ${capitalizeId(index)}`;
+  el('highlightIndex').value = index;
+  form.elements.namedItem('imageUrl').value = slide?.imageUrl || '';
+  highlightEditorDraft = structuredClone(slide?.translations || {});
+  el('highlightEditLanguage').value = state.language;
+  showHighlightLocale(state.language);
+  el('deleteHighlightButton').hidden = isNew || getHighlights().length <= 1;
   openModal('highlightModal');
   validateVisibleImageFields('highlightModal');
 }
 async function saveHighlight(event) {
   event.preventDefault();
   if (!requireAdmin()) return;
+  captureHighlightLocale();
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
-  const index = Number(data.highlightIndex);
-  if (!Number.isInteger(index) || index < 0 || index > 2) return;
-  if (!safeUrl(data.imageUrl)) return toast('URL background hero harus HTTPS.', true);
-  delete data.highlightIndex;
-  const nextHighlights = getHighlights();
-  nextHighlights[index] = data;
+  const isNew = data.highlightIndex === 'new';
+  const index = isNew ? getHighlights().length : Number(data.highlightIndex);
+  if (!isNew && (!Number.isInteger(index) || index < 0 || index >= getHighlights().length)) return;
+  if (!safeUrl(data.imageUrl)) return toast('URL background hero harus HTTPS.',true);
+  const nextHighlights = getHighlights().map(item => structuredClone(item));
+  const original = isNew ? {} : nextHighlights[index];
+  const defaultLang = LANGUAGES.includes(state.site.defaultLanguage) ? state.site.defaultLanguage : 'en';
+  const result = { ...original, imageUrl: safeUrl(data.imageUrl), translations:structuredClone(highlightEditorDraft) };
+  for (const key of HIGHLIGHT_TRANSLATABLE) result[key] =
+    highlightEditorDraft[defaultLang]?.[key] || highlightEditorDraft[highlightEditorCurrentLanguage]?.[key] || original[key] || '';
+  if (!result.headline || !result.label || !result.cardTitle) return toast('Isi label, judul hero, dan judul kartu.', true);
+  nextHighlights[index] = result;
   const button = form.querySelector('[type="submit"]');
   button.disabled = true;
   try {
     await firebase.fs.setDoc(firebase.fs.doc(firebase.db,'site_settings','main'), {
-      highlights: nextHighlights, updatedAt: firebase.fs.serverTimestamp()
-    }, { merge: true });
+      highlights:nextHighlights,updatedAt:firebase.fs.serverTimestamp()
+    }, {merge:true});
     closeModal('highlightModal');
-    setSlide(index);
-    toast(`Highlight ${capitalizeId(index)} berhasil diperbarui.`);
-  } catch (error) { toast(friendlyError(error), true); }
+    state.activeSlide = index;
+    ensureActiveVisible();
+    toast(t('added'));
+  } catch(error) { toast(friendlyError(error),true); }
   finally { button.disabled = false; }
+}
+async function deleteHighlight() {
+  if (!requireAdmin()) return;
+  const index = Number(el('highlightIndex').value);
+  const current = getHighlights();
+  if (!Number.isInteger(index) || current.length <= 1 || !current[index]) return;
+  if (!window.confirm(`Hapus highlight ${capitalizeId(index)}?`)) return;
+  const nextHighlights = current.filter((_,i) => i !== index);
+  try {
+    await firebase.fs.setDoc(firebase.fs.doc(firebase.db,'site_settings','main'), {
+      highlights:nextHighlights,updatedAt:firebase.fs.serverTimestamp()
+    },{merge:true});
+    state.activeSlide = Math.max(0,Math.min(state.activeSlide,nextHighlights.length-1));
+    state.highlightOffset = Math.max(0,Math.min(state.highlightOffset,nextHighlights.length-3));
+    closeModal('highlightModal');
+    toast(t('removed'));
+  } catch(error) { toast(friendlyError(error),true); }
 }
 
 // On first admin save, materialize all four preview albums as editable Firestore
@@ -786,46 +1240,69 @@ async function persistDemoAlbumsIfNeeded() {
   return demoSeedPromise;
 }
 
+let albumEditorDraft = {};
+let albumEditorCurrentLanguage = 'en';
+function captureAlbumLocale() {
+  const form = el('albumForm');
+  const draft = albumEditorDraft[albumEditorCurrentLanguage] || {};
+  for (const key of ALBUM_TRANSLATABLE) draft[key] = form.elements.namedItem(key).value;
+  albumEditorDraft[albumEditorCurrentLanguage] = draft;
+}
+function showAlbumLocale(language) {
+  const form = el('albumForm');
+  albumEditorCurrentLanguage = language;
+  const album = el('albumId').value ? getAlbum(el('albumId').value) : null;
+  const draft = albumEditorDraft[language] || {};
+  for (const key of ALBUM_TRANSLATABLE) form.elements.namedItem(key).value = draft[key] ?? album?.[key] ?? '';
+}
 function openAlbumEditor(id = '') {
   if (!requireAdmin()) return;
   const album = id ? getAlbum(id) : null;
   el('albumFormTitle').textContent = album ? 'EDIT ALBUM' : 'TAMBAH ALBUM';
   el('albumForm').reset();
   el('albumId').value = album?.id || '';
-  const names = ['title','category','description','coverUrl','sortOrder'];
-  for (const key of names) el('albumForm').elements.namedItem(key).value = album?.[key] ?? (key === 'sortOrder' ? String(state.albums.length + 1) : '');
+  for (const key of ['category','coverUrl','sortOrder']) {
+    el('albumForm').elements.namedItem(key).value = album?.[key] ?? (key === 'sortOrder' ? String(state.albums.length+1) : '');
+  }
+  albumEditorDraft = structuredClone(album?.translations || {});
+  el('albumEditLanguage').value = state.language;
+  showAlbumLocale(state.language);
   openModal('albumFormModal');
   validateVisibleImageFields('albumFormModal');
 }
 async function saveAlbum(event) {
   event.preventDefault();
   if (!requireAdmin()) return;
+  captureAlbumLocale();
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
-  if (!safeUrl(data.coverUrl)) return toast('Cover album harus menggunakan URL HTTPS.', true);
+  if (!safeUrl(data.coverUrl)) return toast('Cover album harus menggunakan URL HTTPS.',true);
   const albumId = data.albumId;
+  const old = albumId ? getAlbum(albumId) : null;
+  const defaultLang = LANGUAGES.includes(state.site.defaultLanguage) ? state.site.defaultLanguage : 'en';
+  const textLocale = albumEditorDraft[defaultLang] || albumEditorDraft[albumEditorCurrentLanguage] || {};
   const payload = {
-    title: data.title.trim(), category: data.category.trim(), description: data.description.trim(),
-    coverUrl: safeUrl(data.coverUrl), sortOrder: Math.max(0, Number(data.sortOrder) || 0),
-    updatedAt: firebase.fs.serverTimestamp()
+    title: textLocale.title?.trim() || old?.title || data.title.trim(),
+    description: textLocale.description?.trim() || old?.description || data.description.trim(),
+    translations: structuredClone(albumEditorDraft),
+    category: data.category.trim(),coverUrl:safeUrl(data.coverUrl),
+    sortOrder:Math.max(0,Number(data.sortOrder)||0),updatedAt:firebase.fs.serverTimestamp()
   };
-  if (!payload.title || !payload.category) return toast('Judul dan kategori album wajib diisi.', true);
+  if (!payload.title || !payload.category) return toast('Judul dan kategori album wajib diisi.',true);
   const button = form.querySelector('[type="submit"]');
   button.disabled = true;
   try {
     await persistDemoAlbumsIfNeeded();
-    if (albumId) {
-      await firebase.fs.updateDoc(firebase.fs.doc(firebase.db,'albums',albumId), payload);
-    } else {
-      await firebase.fs.addDoc(firebase.fs.collection(firebase.db,'albums'), {
-        ...payload, photos: [], createdAt: firebase.fs.serverTimestamp()
-      });
-    }
+    if (albumId) await firebase.fs.updateDoc(firebase.fs.doc(firebase.db,'albums',albumId),payload);
+    else await firebase.fs.addDoc(firebase.fs.collection(firebase.db,'albums'),{
+      ...payload,photos:[],createdAt:firebase.fs.serverTimestamp()
+    });
     closeModal('albumFormModal');
     toast(albumId ? 'Album berhasil diperbarui.' : 'Album berhasil ditambahkan.');
-  } catch (error) { toast(friendlyError(error), true); }
+  } catch(error) { toast(friendlyError(error),true); }
   finally { button.disabled = false; }
 }
+
 async function deleteAlbum(id) {
   if (!requireAdmin()) return;
   const album = getAlbum(id);
@@ -844,51 +1321,79 @@ function photoKey() {
   return typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID() : `p_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
+let photoEditorDraft = {};
+let photoEditorCurrentLanguage = 'en';
+function capturePhotoLocale() {
+  const form = el('photoForm');
+  const draft = photoEditorDraft[photoEditorCurrentLanguage] || {};
+  for (const key of PHOTO_TRANSLATABLE) draft[key] = form.elements.namedItem(key).value;
+  photoEditorDraft[photoEditorCurrentLanguage] = draft;
+}
+function showPhotoLocale(language) {
+  const form = el('photoForm');
+  photoEditorCurrentLanguage = language;
+  const photoId = el('photoId').value;
+  const album = getAlbum(el('photoAlbumId').value);
+  const photo = normalizedPhotos(album).find(p => p.id === photoId);
+  const draft = photoEditorDraft[language] || {};
+  for (const key of PHOTO_TRANSLATABLE) form.elements.namedItem(key).value = draft[key] ?? photo?.[key] ?? '';
+}
 function openPhotoEditor(photoId = '') {
   if (!requireAdmin()) return;
   const album = getAlbum(state.activeAlbumId);
   if (!album) return;
-  const photo = normalizedPhotos(album).find((p) => p.id === photoId);
+  const photo = normalizedPhotos(album).find(p => p.id === photoId);
   const form = el('photoForm');
   form.reset();
   el('photoFormTitle').textContent = photo ? 'EDIT FOTO' : 'TAMBAH FOTO';
   el('photoAlbumId').value = album.id;
   el('photoId').value = photo?.id || '';
-  for (const key of ['url','title','description','category']) form.elements.namedItem(key).value = photo?.[key] ?? '';
+  for (const key of ['url','category']) form.elements.namedItem(key).value = photo?.[key] ?? '';
   for (const key of ['camera','lens','focalLength','shutter','aperture','iso']) form.elements.namedItem(key).value = photo?.exif?.[key] ?? '';
+  photoEditorDraft = structuredClone(photo?.translations || {});
+  el('photoEditLanguage').value = state.language;
+  showPhotoLocale(state.language);
   openModal('photoFormModal');
   validateVisibleImageFields('photoFormModal');
 }
 async function savePhoto(event) {
   event.preventDefault();
   if (!requireAdmin()) return;
+  capturePhotoLocale();
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
   const album = getAlbum(data.photoAlbumId);
-  if (!album) return toast('Album tidak ditemukan.', true);
-  if (!safeUrl(data.url)) return toast('URL foto harus HTTPS.', true);
-  const payload = {
-    id: data.photoId || photoKey(), url: safeUrl(data.url), title: data.title.trim(),
-    description: data.description.trim(), category: data.category.trim(),
-    exif: Object.fromEntries(['camera','lens','focalLength','shutter','aperture','iso'].map((key) => [key, data[key].trim()]))
-  };
-  if (!payload.title) return toast('Judul foto wajib diisi.', true);
+  if (!album) return toast('Album tidak ditemukan.',true);
+  if (!safeUrl(data.url)) return toast('URL foto harus HTTPS.',true);
   const photos = [...normalizedPhotos(album)];
-  const existingIndex = photos.findIndex((p) => p.id === payload.id);
+  const existingIndex = photos.findIndex(p => p.id === data.photoId);
+  const old = existingIndex >= 0 ? photos[existingIndex] : null;
+  const defaultLang = LANGUAGES.includes(state.site.defaultLanguage) ? state.site.defaultLanguage : 'en';
+  const textLocale = photoEditorDraft[defaultLang] || photoEditorDraft[photoEditorCurrentLanguage] || {};
+  const payload = {
+    id:data.photoId || photoKey(),url:safeUrl(data.url),
+    title:textLocale.title?.trim() || old?.title || data.title.trim(),
+    description:textLocale.description?.trim() || old?.description || data.description.trim(),
+    translations: structuredClone(photoEditorDraft),
+    category:data.category.trim(),
+    exif:Object.fromEntries(['camera','lens','focalLength','shutter','aperture','iso'].map(key => [key,data[key].trim()]))
+  };
+  if (!payload.title) return toast('Judul foto wajib diisi.',true);
   if (existingIndex >= 0) photos[existingIndex] = payload;
   else photos.push(payload);
   const button = form.querySelector('[type="submit"]');
   button.disabled = true;
   try {
     await persistDemoAlbumsIfNeeded();
-    await firebase.fs.updateDoc(firebase.fs.doc(firebase.db,'albums',album.id), {
-      photos, updatedAt: firebase.fs.serverTimestamp()
+    await firebase.fs.updateDoc(firebase.fs.doc(firebase.db,'albums',album.id),{
+      photos, updatedAt:firebase.fs.serverTimestamp()
     });
     closeModal('photoFormModal');
     toast(existingIndex >= 0 ? 'Foto berhasil diperbarui.' : 'Foto berhasil ditambahkan ke album.');
-  } catch (error) { toast(friendlyError(error), true); }
+  } catch(error) { toast(friendlyError(error),true); }
   finally { button.disabled = false; }
 }
+
 async function deletePhoto(photoId) {
   if (!requireAdmin()) return;
   const album = getAlbum(state.activeAlbumId);
@@ -955,7 +1460,8 @@ function attachEvents() {
     const target = event.target.closest('button, [data-close]');
     if (!target) return;
     if (target.dataset.close) return closeModal(target.dataset.close);
-    if (target.dataset.slide !== undefined) return setSlide(Number(target.dataset.slide));
+    if (target.dataset.slide !== undefined) { setSlide(Number(target.dataset.slide)); resetAutoSlide(); return; }
+    if (target.dataset.highlightNav !== undefined) return updateHighlightWindow(Number(target.dataset.highlightNav));
     if (target.dataset.openAlbum) return openAlbum(target.dataset.openAlbum);
     if (target.dataset.openPhoto !== undefined) return openLightbox(Number(target.dataset.openPhoto));
     if (target.dataset.editHighlight !== undefined) return openHighlightEditor(Number(target.dataset.editHighlight));
@@ -969,6 +1475,25 @@ function attachEvents() {
       renderAlbums();
     }
   });
+  el('languageSelect').addEventListener('change', event => setLanguage(event.target.value));
+  el('siteEditLanguage').addEventListener('change', event => {
+    captureSiteLocale(); showSiteLocale(event.target.value);
+  });
+  el('highlightEditLanguage').addEventListener('change', event => {
+    captureHighlightLocale(); showHighlightLocale(event.target.value);
+  });
+  el('albumEditLanguage').addEventListener('change', event => {
+    captureAlbumLocale(); showAlbumLocale(event.target.value);
+  });
+  el('photoEditLanguage').addEventListener('change', event => {
+    capturePhotoLocale(); showPhotoLocale(event.target.value);
+  });
+  el('addHighlightButton').addEventListener('click', () => openHighlightEditor('new'));
+  el('adminAddHighlight').addEventListener('click', () => openHighlightEditor('new'));
+  el('deleteHighlightButton').addEventListener('click', deleteHighlight);
+  el('highlightList').addEventListener('wheel', onHighlightWheel, {passive:false});
+  el('heroTeasers').addEventListener('wheel', onHighlightWheel, {passive:false});
+  document.addEventListener('visibilitychange', resetAutoSlide);
   el('searchToggle').addEventListener('click', () => setSearchOpen(el('searchPanel').hidden));
   el('searchInput').addEventListener('input', (event) => {
     state.currentQuery = event.currentTarget.value;
@@ -1012,6 +1537,7 @@ function attachEvents() {
   el('photoForm').addEventListener('submit', savePhoto);
   el('prevPhoto').addEventListener('click', () => navigatePhoto(-1));
   el('nextPhoto').addEventListener('click', () => navigatePhoto(1));
+  installLightboxZoom();
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       if (state.modalStack.length) closeTopModal();
@@ -1021,6 +1547,9 @@ function attachEvents() {
     }
     if (!el('lightboxModal').hidden && event.key === 'ArrowRight') navigatePhoto(1);
     else if (!el('lightboxModal').hidden && event.key === 'ArrowLeft') navigatePhoto(-1);
+    else if (!el('lightboxModal').hidden && ['+','='].includes(event.key)) { event.preventDefault(); zoomFromCenter(1.4); }
+    else if (!el('lightboxModal').hidden && ['-','_'].includes(event.key)) { event.preventDefault(); zoomFromCenter(1/1.4); }
+    else if (!el('lightboxModal').hidden && event.key === '0') { event.preventDefault(); resetLightboxZoom(); }
     else if (event.key === '/' && !state.modalStack.length && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
       event.preventDefault(); setSearchOpen(true);
     }
@@ -1090,15 +1619,19 @@ function init() {
   const year = String(new Date().getFullYear());
   el('currentYear').textContent = year;
   el('footerYear').textContent = year;
-  // Capture image load failures before dynamically rendering albums and story.
   document.addEventListener('error', onImageError, true);
   installImageFieldChecks();
   attachEvents();
-  renderBrandAndStory();
-  setSlide(0, true);
-  renderAlbums();
-  onScroll();
+  // Do NOT render default site before remote Firestore has returned.
+  // A loading screen prevents the old/default hero from flashing on refresh.
   startFirebase();
+  // Failure safety for blocked CDN/connection. Display a retry, not stale demo.
+  window.setTimeout(() => {
+    if (!state.booted) {
+      setBootMessage('Could not load the latest portfolio. Check your connection.');
+      el('bootRetry').hidden = false;
+    }
+  }, 14000);
 }
 init();
 
