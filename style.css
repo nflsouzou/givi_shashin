@@ -14,6 +14,7 @@
   --accent-rgb: 225 29 72;
   --tySmall:13px; --tyBody:16px; --tyNav:13px; --tyButton:13px;
   --tyAlbum:28px; --tySection:72px; --tyHero:144px; --tyStory:112px; --tyContact:96px;
+  --profile-avatar-size: 140px; --profile-avatar-size-mobile: 116px;
   --border: rgba(248,250,252,.13);
   --font: 'Plus Jakarta Sans', Inter, Arial, sans-serif;
   --display: 'Barlow Condensed', 'Plus Jakarta Sans', sans-serif;
@@ -108,7 +109,7 @@ img { display: block; max-width: 100%; }
 .profile-strip__inner { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .profile-strip__eyebrow { color: color-mix(in srgb, var(--accent) 55%, white); letter-spacing: .22em; font-size: 8px; font-weight: 800; margin: 0 0 12px; }
 /* Larger portrait, but still compact within the strip */
-.profile-strip__avatar { width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg,var(--accent),#3d4455 60%,var(--accent)); box-shadow: 0 8px 32px rgba(0,0,0,.32),0 0 0 5px rgb(var(--accent-rgb) / .07); position: relative; overflow: hidden; flex: 0 0 auto; }
+.profile-strip__avatar { width: var(--profile-avatar-size); height: var(--profile-avatar-size); border-radius: 50%; background: linear-gradient(135deg,var(--accent),#3d4455 60%,var(--accent)); box-shadow: 0 8px 32px rgba(0,0,0,.32),0 0 0 5px rgb(var(--accent-rgb) / .07); position: relative; overflow: hidden; flex: 0 0 auto; }
 .profile-strip__avatar img, .profile-strip__placeholder { position: absolute; inset: 5px; width: calc(100% - 10px); height: calc(100% - 10px); border-radius: 50%; }
 .profile-strip__avatar img { object-fit: cover; object-position: center 35%; }
 .profile-strip__placeholder { display: grid; place-items: center; font-family: var(--display); font-size: 46px; font-weight: 800; letter-spacing: .025em; background: #202a3a; color: #e4eaf4; }
@@ -346,7 +347,7 @@ img { display: block; max-width: 100%; }
   .hero-teaser__description { font-size: 9px; line-height: 1.5; }
   .editor-fab--hero { top: 80px; right: 17px; }
   .profile-strip { padding: 20px 0 24px; }
-  .profile-strip__avatar { height: 116px; width: 116px; }
+  .profile-strip__avatar { height: min(var(--profile-avatar-size-mobile), calc(100vw - 80px)); width: min(var(--profile-avatar-size-mobile), calc(100vw - 80px)); }
   .profile-strip__placeholder { font-size: 39px; }
   .profile-strip h2 { font-size: 23px; }
   .profile-strip__bio { font-size: 10px; padding: 0 18px; }
@@ -847,4 +848,29 @@ body {overflow-x:clip;}
   .brand__mark {width:9px;height:9px;}
   .header-actions {gap:2px;}
   .language-select {min-width:46px;max-width:51px;}
+}
+
+/* Revisi 07 additions: scalable profile with fully natural document flow. */
+.profile-strip { min-height: 0; overflow: visible; }
+.profile-strip__inner { height: auto; min-height: 0; }
+.profile-strip__avatar { max-width: calc(100vw - 88px); max-height: calc(100vw - 88px); transition: width .25s ease, height .25s ease; }
+.profile-strip__placeholder { font-size: clamp(32px, calc(var(--profile-avatar-size) * .32), 80px); }
+.profile-strip h2 { margin-top: 16px; overflow-wrap: anywhere; }
+.profile-strip__bio { max-width: min(720px, 100%); overflow-wrap: anywhere; }
+.profile-size-editor { padding: 14px 16px; margin: 18px 0; border: 1px solid rgba(148,163,184,.25); border-radius: 8px; background: rgba(11,14,20,.38); }
+.profile-size-editor label { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; font-weight: 700; }
+.profile-size-editor input[type=range] { display: block; width: 100%; accent-color: var(--accent); cursor: ew-resize; }
+.profile-size-editor output { color: color-mix(in srgb, var(--accent) 55%, white); font-size: 13px; font-variant-numeric: tabular-nums; }
+.profile-size-editor .field-hint { margin: 10px 0 0; line-height: 1.6; }
+@media(max-width:620px) {
+  .profile-strip__placeholder { font-size: clamp(30px, calc(var(--profile-avatar-size-mobile) * .32), 70px); }
+}
+
+/* Release: givi-shashin-revisi07-additions-20261125 */
+
+/* Keep the admin profile-edit control in normal flow even with large portraits. */
+.profile-strip__edit { position: static; inset: auto; margin-top: 14px; }
+.profile-strip__role { line-height: 1.5; overflow-wrap: anywhere; }
+@media(prefers-reduced-motion: reduce) {
+  .profile-strip__avatar { transition: none; }
 }
