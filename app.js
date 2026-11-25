@@ -43,6 +43,7 @@ const DEFAULT_SITE = {
   profileRole: 'PHOTOGRAPHER · VISUAL STORYTELLER',
   profileBio: 'Saya mengabadikan manusia, perjalanan, dan cerita melalui cahaya.',
   profilePhotoUrl: '',
+  profileAvatarSize: 140, // diameter in px; CSS scales it on mobile
   contactEmail: 'hello@example.com',
   instagramUrl: 'https://www.instagram.com/',
   storyEyebrow: 'THE ART OF OBSERVING',
@@ -183,10 +184,10 @@ const TRANSLATIONS = {
   }
 };
 const UI_TEXT_FIELDS = [
-  ['NAVBAR', [['navHome','Home menu'],['navAlbums','Albums menu'],['navAbout','About menu'],['navContact','Contact menu'],['featuredHighlights','Label highlight kanan'],['scrollDiscover','Scroll label']]],
-  ['PROFILE & ALBUMS', [['behindLens','Label profil'],['collection','Label di atas Selected Albums'],['selected','Judul album - kata pertama'],['albums','Judul album - kata kedua'],['albumsSubtitle','Subjudul album'],['selectedWork','Label setiap kartu highlight'],['viewMoreAlbums','Tombol buka semua album'],['collapseAlbums','Tombol collapse'],['loadMore','Tombol Load More'],['albumFootnote','Catatan bawah album'],['all','Semua kategori'],['results','Jumlah album (gunakan {shown} dan {total})'],['albumEmpty','Judul album kosong'],['albumEmptyText','Deskripsi album kosong'],['resetFilter','Tombol reset filter'],['searchPlaceholder','Placeholder pencarian']]],
-  ['SHOWCASE & CONTACT', [['create','Tombol showcase'],['contactEyebrow','Label contact'],['contactHead1','Judul contact baris pertama'],['contactHead2','Judul contact baris kedua'],['contactBody','Deskripsi contact'],['letsTalk','Tombol email'],['instagramLabel','Label Instagram'],['footerDescriptor','Deskripsi footer'],['rights','Teks copyright']]],
-  ['GALERI & TOMBOL', [['photo','Singular foto'],['photos','Plural foto'],['noExif','Keterangan jika tidak ada EXIF'],['noPhotos','Album tanpa foto'],['albumExample','Label album demo'],['editProfile','Tombol edit profil'],['editAlbum','Tombol edit album'],['addAlbum','Tombol tambah album'],['addPhoto','Tombol tambah foto'],['addHighlight','Tombol tambah highlight'],['editSite','Tombol edit site'],['viewPhoto','Teks hover foto'],['deleteAlbum','Tombol hapus album'],['editPhoto','Tombol edit foto'],['deletePhoto','Tombol hapus foto']]]
+  ['NAVBAR', [['navHome','Home menu'],['navAlbums','Albums menu'],['navAbout','About menu'],['navContact','Contact menu'],['featuredHighlights','Featured highlights label'],['scrollDiscover','Scroll label']]],
+  ['PROFILE & ALBUMS', [['behindLens','Profile section label'],['collection','Albums section eyebrow'],['selected','Albums heading, first part'],['albums','Albums heading, second part'],['albumsSubtitle','Albums section subtitle'],['selectedWork','Highlight card eyebrow'],['viewMoreAlbums','Expand album button'],['collapseAlbums','Collapse album button'],['loadMore','Load More button'],['albumFootnote','Albums footer note'],['all','All categories label'],['results','Album count ({shown} and {total})'],['albumEmpty','Empty albums heading'],['albumEmptyText','Empty albums text'],['resetFilter','Reset filter button'],['searchPlaceholder','Search placeholder']]],
+  ['SHOWCASE & CONTACT', [['create','Showcase button'],['contactEyebrow','Contact section label'],['contactHead1','Contact headline, first line'],['contactHead2','Contact headline, second line'],['contactBody','Contact description'],['letsTalk','Email button'],['instagramLabel','Instagram label'],['footerDescriptor','Footer description'],['rights','Copyright text']]],
+  ['GALERI & TOMBOL', [['photo','Singular photo label'],['photos','Plural photo label'],['noExif','No EXIF information text'],['noPhotos','Empty gallery label'],['albumExample','Demo album label'],['editProfile','Edit profile button'],['editAlbum','Edit album button'],['addAlbum','Add album button'],['addPhoto','Add photo button'],['addHighlight','Add highlight button'],['editSite','Edit Site button'],['viewPhoto','Photo hover label'],['deleteAlbum','Delete album button'],['editPhoto','Edit photo button'],['deletePhoto','Delete photo button']]]
 ];
 const ALL_UI_TEXT_KEYS = UI_TEXT_FIELDS.flatMap(([,fields]) => fields.map(([key]) => key));
 const TYPOGRAPHY_RULES = {
@@ -196,9 +197,17 @@ const TYPOGRAPHY_RULES = {
 };
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const clampRange = (value, rule) => Math.min(rule[1], Math.max(rule[0], Number.isFinite(Number(value)) ? Number(value) : rule[2]));
+const clampProfileSize = (value) => Math.min(260, Math.max(100, Math.round(Number(value) || 140)));
+function applyProfileSize(value) {
+  const size = clampProfileSize(value);
+  const mobile = Math.min(216, Math.max(90, Math.round(size * 0.83)));
+  document.documentElement.style.setProperty('--profile-avatar-size', `${size}px`);
+  document.documentElement.style.setProperty('--profile-avatar-size-mobile', `${mobile}px`);
+}
 function applyAppearance(accent = state.site.accentColor, typography = state.site.typography) {
   const hex = HEX_COLOR.test(String(accent)) ? String(accent).toUpperCase() : '#E11D48';
   const root = document.documentElement;
+  applyProfileSize(state.site.profileAvatarSize ?? 140);
   root.style.setProperty('--accent', hex);
   const rgb = [1,3,5].map(x => parseInt(hex.slice(x,x+2),16));
   root.style.setProperty('--accent-rgb', rgb.join(' '));
@@ -535,21 +544,21 @@ function checkProfilePhotoUrl() {
   else openLink.removeAttribute('href');
 
   if (!raw) {
-    status.textContent = 'Belum ada URL foto. Inisial nama akan ditampilkan.';
+    status.textContent = 'No photo URL provided; initials will appear instead.';
     status.dataset.status = 'idle';
     return;
   }
   if (!url) {
-    status.textContent = 'URL tidak valid. Gunakan URL publik HTTPS dari ImageKit.';
+    status.textContent = 'Invalid URL. Use a public HTTPS image URL.';
     status.dataset.status = 'error';
     return;
   }
-  status.textContent = 'Sedang memeriksa apakah foto bisa dibuka...';
+  status.textContent = 'Checking whether the photo URL can be loaded...';
   status.dataset.status = 'loading';
   loadImageUrl(url, 'thumb').then(usable => {
     if (current !== profilePreviewCounter) return;
     if (!usable) {
-      status.textContent = 'URL tidak berhasil dimuat. Periksa Copy URL, status publik, dan batas ukuran gambar di ImageKit.';
+      status.textContent = 'Photo could not be loaded. Check the direct URL, public access and image hosting limits.';
       status.dataset.status = 'error';
       return;
     }
@@ -557,8 +566,8 @@ function checkProfilePhotoUrl() {
     preview.hidden = false;
     fallback.hidden = true;
     status.textContent = usable === originalImageUrl(url)
-      ? 'Foto asli berhasil dimuat. Klik SIMPAN PERUBAHAN untuk menerapkannya.'
-      : 'Foto berhasil dimuat memakai URL alternatif. Klik SIMPAN PERUBAHAN.';
+      ? 'Original photo loaded. Click SAVE CHANGES to apply.'
+      : 'Photo loaded from a fallback URL. Click SAVE CHANGES.';
     status.dataset.status = 'ok';
   });
 }
@@ -1092,7 +1101,7 @@ function installLightboxZoom() {
   paintLightboxZoom();
 }
 
-// One-track ambient soundtrack — Smart Autoplay (Revisi 06).
+// One-track ambient soundtrack — Smart Autoplay + First Gesture Retry (Revisi 07).
 // A real sound-on autoplay attempt is made after Firestore settings are loaded.
 // Browser policy may reject the attempt. The icon reflects actual playback,
 // and a visitor's explicit OFF choice is remembered locally (not in Firestore).
@@ -1102,6 +1111,36 @@ let ambientPlaying = false;
 let ambientDesiredVolume = 0.25;
 let ambientRequestId = 0; // Ignore late play() resolutions after OFF or source changes.
 let ambientAutoplayAttemptedUrl = ''; // Never retry automatically on Firestore snapshots.
+let ambientGestureRetryArmed = false; // Only ON while a blocked autoplay awaits a real interaction.
+let ambientGestureRetryInFlight = false;
+let ambientLastGestureAttemptAt = -Infinity;
+
+// Registered in capture phase so play() is called inside the user's gesture,
+// BEFORE asynchronous click handlers. Just moving the mouse/scrolling is not
+// a media activation. A direct click on the music icon keeps its own toggle.
+function retryAmbientAfterFirstInteraction(event) {
+  if (!ambientGestureRetryArmed || ambientGestureRetryInFlight ||
+      readAmbientPreference() === 'off' || !state.booted || document.hidden) return;
+  const audio = el('ambientAudio');
+  const url = safeUrl(state.site.musicUrl);
+  if (state.site.musicEnabled !== true || !url || audio.getAttribute('src') !== url) return;
+  if (ambientPlaying && !audio.paused) { ambientGestureRetryArmed = false; return; }
+  if (event.target instanceof Element && event.target.closest('#ambientToggle')) return;
+  // On touch devices the activation gesture is pointerup; mouse uses pointerdown.
+  if (event.type === 'pointerdown' && event.pointerType === 'touch') return;
+  if (event.type === 'pointerup' && event.pointerType !== 'touch') return;
+  if (event.type === 'keydown' && (event.repeat || !['Enter', ' '].includes(event.key) ||
+      event.ctrlKey || event.altKey || event.metaKey)) return;
+  // Avoid retrying on the synthetic click that follows the same pointer gesture.
+  const now = performance.now();
+  if (now - ambientLastGestureAttemptAt < 350) return;
+  ambientLastGestureAttemptAt = now;
+  ambientGestureRetryInFlight = true;
+  // Do NOT await before invoking play(): transient user activation must survive.
+  void startAmbientMusic({ auto: true }).finally(() => {
+    ambientGestureRetryInFlight = false;
+  });
+}
 
 function readAmbientPreference() {
   try {
@@ -1158,6 +1197,7 @@ async function startAmbientMusic({ auto = false } = {}) {
       return false;
     }
     ambientPlaying = true;
+    ambientGestureRetryArmed = false;
     fadeAmbientTo(ambientDesiredVolume);
     if (!auto) rememberAmbientPreference('on');
     updateAmbientButton();
@@ -1166,12 +1206,16 @@ async function startAmbientMusic({ auto = false } = {}) {
     if (requestId !== ambientRequestId) return false;
     ambientPlaying = false;
     audio.pause();
+    // A blocked auto-play is retried on the next genuine click/tap/Enter/Space.
+    // Network/codec errors should not trigger a new request on every click.
+    ambientGestureRetryArmed = error?.name === 'NotAllowedError' &&
+      readAmbientPreference() !== 'off';
     updateAmbientButton();
     // NotAllowedError is expected on many first visits. Do not show a noisy toast.
     if (!auto) {
       const message = error?.name === 'NotAllowedError'
-        ? 'Browser memerlukan klik untuk memutar musik.'
-        : 'Musik tidak dapat diputar. Periksa URL MP3 publik.';
+        ? 'Browser requires a click to play music.'
+        : 'Audio could not be played. Check the public MP3 URL.';
       toast(message, true);
     } else if (error?.name !== 'NotAllowedError') {
       console.warn('[Givi Shashin] Ambient autoplay unavailable:', error);
@@ -1185,6 +1229,7 @@ function configureAmbientAudio() {
   const enabled = state.site.musicEnabled === true && !!url;
   ambientDesiredVolume = Math.min(1, Math.max(0, Number(state.site.musicVolume ?? 25) / 100));
   if (!enabled) {
+    ambientGestureRetryArmed = false;
     ambientRequestId++;
     cancelAnimationFrame(ambientFadeFrame);
     ambientPlaying = false;
@@ -1195,6 +1240,7 @@ function configureAmbientAudio() {
     }
     ambientAutoplayAttemptedUrl = '';
   } else if (audio.getAttribute('src') !== url) {
+    ambientGestureRetryArmed = false;
     ambientRequestId++;
     cancelAnimationFrame(ambientFadeFrame);
     ambientPlaying = false;
@@ -1212,7 +1258,11 @@ function configureAmbientAudio() {
   if (enabled && readAmbientPreference() !== 'off' &&
       ambientAutoplayAttemptedUrl !== url && !ambientPlaying) {
     ambientAutoplayAttemptedUrl = url;
+    // Arm BEFORE the promise settles so a fast first click is not lost.
+    ambientGestureRetryArmed = true;
     void startAmbientMusic({ auto: true });
+  } else if (readAmbientPreference() === 'off') {
+    ambientGestureRetryArmed = false;
   }
 }
 function toggleAmbientMusic() {
@@ -1221,6 +1271,7 @@ function toggleAmbientMusic() {
   if (ambientPlaying && !audio.paused) {
     // Explicit OFF survives reload, even if autoplay was permitted earlier.
     rememberAmbientPreference('off');
+    ambientGestureRetryArmed = false;
     ambientRequestId++;
     ambientPlaying = false;
     fadeAmbientTo(0, true);
@@ -1338,7 +1389,7 @@ function friendlyError(error) {
 }
 function requireAdmin() {
   if (!state.firebaseReady || !firebase.db || !state.admin || !firebase.auth?.currentUser) {
-    toast('Silakan login dengan akun admin Firebase yang berwenang.', true);
+    toast('Please sign in with an authorized Firebase admin account.', true);
     return false;
   }
   return true;
@@ -1349,7 +1400,7 @@ async function doLogin(event) {
   const message = el('loginError');
   message.hidden = true;
   if (!firebase.auth) {
-    message.textContent = 'Firebase belum dikonfigurasi. Isi firebaseConfig dalam app.js.';
+    message.textContent = 'Firebase is not configured. Add firebaseConfig in app.js.';
     message.hidden = false;
     return;
   }
@@ -1365,7 +1416,7 @@ async function doLogin(event) {
     }
     closeModal('loginModal');
     el('loginForm').reset();
-    toast('Login berhasil. Mode admin aktif.');
+    toast('Signed in. Admin mode enabled.');
   } catch (error) {
     message.textContent = friendlyError(error);
     message.hidden = false;
@@ -1439,6 +1490,9 @@ function openSiteEditor() {
   syncAccentEditor(state.site.accentColor || '#E11D48');
   syncTypographyEditor(state.site.typography);
   setMusicEditorValues();
+  const profileSize = clampProfileSize(state.site.profileAvatarSize ?? 140);
+  el('siteProfileSize').value = profileSize;
+  el('siteProfileSizeOut').textContent = `${profileSize} px`;
   siteEditorCurrentLanguage = state.language;
   el('siteEditLanguage').value = state.language;
   showSiteLocale(state.language);
@@ -1454,17 +1508,18 @@ async function saveSite(event) {
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
   data.musicEnabled = el('siteMusicEnabled').checked;
+  data.profileAvatarSize = clampProfileSize(el('siteProfileSize').value);
   data.musicVolume = Math.min(100,Math.max(0,Number(data.musicVolume || 0)));
   data.accentColor = HEX_COLOR.test(String(data.accentColor)) ? data.accentColor.toUpperCase() : '#E11D48';
   data.typography = previewTypographyValues();
   data.uiText = structuredClone(uiTextEditorDraft);
   for (const key of Object.keys(TYPOGRAPHY_RULES)) delete data[key];
   for (const key of ['profilePhotoUrl','storyImageUrl','storyThumbOneUrl','storyThumbTwoUrl']) {
-    if (data[key] && !safeUrl(data[key])) return toast(`URL HTTPS tidak valid: ${key}`, true);
+    if (data[key] && !safeUrl(data[key])) return toast(`Invalid HTTPS URL: ${key}`, true);
   }
-  if (data.instagramUrl && !safeUrl(data.instagramUrl)) return toast('URL Instagram harus HTTPS.', true);
-  if (data.musicUrl && !safeUrl(data.musicUrl)) return toast('URL musik harus HTTPS.',true);
-  if (data.musicEnabled && !safeUrl(data.musicUrl)) return toast('Aktifkan musik hanya setelah mengisi URL audio publik.',true);
+  if (data.instagramUrl && !safeUrl(data.instagramUrl)) return toast('Instagram URL must use HTTPS.', true);
+  if (data.musicUrl && !safeUrl(data.musicUrl)) return toast('Music URL must use HTTPS.',true);
+  if (data.musicEnabled && !safeUrl(data.musicUrl)) return toast('A public audio URL is required when ambient music is enabled.',true);
   data.autoSlideSeconds = clampSeconds(data.autoSlideSeconds);
   data.defaultLanguage = LANGUAGES.includes(data.defaultLanguage) ? data.defaultLanguage : 'en';
   data.translations = structuredClone(siteEditorDraft);
@@ -1482,7 +1537,7 @@ async function saveSite(event) {
     configureAmbientAudio();
     applyLanguage();
     closeModal('siteModal');
-    toast('Teks, tipografi, tema, musik, dan pengaturan website berhasil disimpan.');
+    toast('Site settings, typography, colors, profile and music saved.');
   } catch(error) { toast(friendlyError(error),true); }
   finally { button.disabled = false; }
 }
@@ -1511,7 +1566,7 @@ function openHighlightEditor(index = 'new') {
   if (!isNew && !slide) return;
   const form = el('highlightForm');
   form.reset();
-  el('highlightModalTitle').textContent = isNew ? 'TAMBAH HIGHLIGHT' : `EDIT HIGHLIGHT ${capitalizeId(index)}`;
+  el('highlightModalTitle').textContent = isNew ? 'ADD HIGHLIGHT' : `EDIT HIGHLIGHT ${capitalizeId(index)}`;
   el('highlightIndex').value = index;
   form.elements.namedItem('imageUrl').value = slide?.imageUrl || '';
   highlightEditorDraft = structuredClone(slide?.translations || {});
@@ -1530,14 +1585,14 @@ async function saveHighlight(event) {
   const isNew = data.highlightIndex === 'new';
   const index = isNew ? getHighlights().length : Number(data.highlightIndex);
   if (!isNew && (!Number.isInteger(index) || index < 0 || index >= getHighlights().length)) return;
-  if (!safeUrl(data.imageUrl)) return toast('URL background hero harus HTTPS.',true);
+  if (!safeUrl(data.imageUrl)) return toast('Hero background URL must use HTTPS.',true);
   const nextHighlights = getHighlights().map(item => structuredClone(item));
   const original = isNew ? {} : nextHighlights[index];
   const defaultLang = LANGUAGES.includes(state.site.defaultLanguage) ? state.site.defaultLanguage : 'en';
   const result = { ...original, imageUrl: safeUrl(data.imageUrl), translations:structuredClone(highlightEditorDraft) };
   for (const key of HIGHLIGHT_TRANSLATABLE) result[key] =
     highlightEditorDraft[defaultLang]?.[key] || highlightEditorDraft[highlightEditorCurrentLanguage]?.[key] || original[key] || '';
-  if (!result.headline || !result.label || !result.cardTitle) return toast('Isi label, judul hero, dan judul kartu.', true);
+  if (!result.headline || !result.label || !result.cardTitle) return toast('Highlight label, hero headline, and card title are required.', true);
   nextHighlights[index] = result;
   const button = form.querySelector('[type="submit"]');
   button.disabled = true;
@@ -1612,7 +1667,7 @@ function showAlbumLocale(language) {
 function openAlbumEditor(id = '') {
   if (!requireAdmin()) return;
   const album = id ? getAlbum(id) : null;
-  el('albumFormTitle').textContent = album ? 'EDIT ALBUM' : 'TAMBAH ALBUM';
+  el('albumFormTitle').textContent = album ? 'EDIT ALBUM' : 'ADD ALBUM';
   el('albumForm').reset();
   el('albumId').value = album?.id || '';
   for (const key of ['category','coverUrl','sortOrder']) {
@@ -1630,7 +1685,7 @@ async function saveAlbum(event) {
   captureAlbumLocale();
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
-  if (!safeUrl(data.coverUrl)) return toast('Cover album harus menggunakan URL HTTPS.',true);
+  if (!safeUrl(data.coverUrl)) return toast('Album cover must use an HTTPS image URL.',true);
   const albumId = data.albumId;
   const old = albumId ? getAlbum(albumId) : null;
   const defaultLang = LANGUAGES.includes(state.site.defaultLanguage) ? state.site.defaultLanguage : 'en';
@@ -1642,7 +1697,7 @@ async function saveAlbum(event) {
     category: data.category.trim(),coverUrl:safeUrl(data.coverUrl),
     sortOrder:Math.max(0,Number(data.sortOrder)||0),updatedAt:firebase.fs.serverTimestamp()
   };
-  if (!payload.title || !payload.category) return toast('Judul dan kategori album wajib diisi.',true);
+  if (!payload.title || !payload.category) return toast('Album title and category are required.',true);
   const button = form.querySelector('[type="submit"]');
   button.disabled = true;
   try {
@@ -1652,7 +1707,7 @@ async function saveAlbum(event) {
       ...payload,photos:[],createdAt:firebase.fs.serverTimestamp()
     });
     closeModal('albumFormModal');
-    toast(albumId ? 'Album berhasil diperbarui.' : 'Album berhasil ditambahkan.');
+    toast(albumId ? 'Album updated.' : 'Album added.');
   } catch(error) { toast(friendlyError(error),true); }
   finally { button.disabled = false; }
 }
@@ -1661,13 +1716,13 @@ async function deleteAlbum(id) {
   if (!requireAdmin()) return;
   const album = getAlbum(id);
   if (!album) return;
-  if (!window.confirm(`Hapus album "${album.title}" beserta seluruh referensi fotonya? URL asli di ImageKit tidak akan terhapus.`)) return;
+  if (!window.confirm(`Delete album "${album.title}" and its photo references? Hosted files will not be deleted.`)) return;
   try {
     await persistDemoAlbumsIfNeeded();
     await firebase.fs.setDoc(firebase.fs.doc(firebase.db,'site_settings','main'), {albumsInitialized: true}, {merge: true});
     await firebase.fs.deleteDoc(firebase.fs.doc(firebase.db,'albums',id));
     if (state.activeAlbumId === id) closeModal('galleryModal');
-    toast('Album dihapus dari Firestore. File ImageKit tidak terpengaruh.');
+    toast('Album removed from Firestore. ImageKit files are unchanged.');
   } catch (error) { toast(friendlyError(error), true); }
 }
 
@@ -1699,7 +1754,7 @@ function openPhotoEditor(photoId = '') {
   const photo = normalizedPhotos(album).find(p => p.id === photoId);
   const form = el('photoForm');
   form.reset();
-  el('photoFormTitle').textContent = photo ? 'EDIT FOTO' : 'TAMBAH FOTO';
+  el('photoFormTitle').textContent = photo ? 'EDIT PHOTO' : 'ADD PHOTO';
   el('photoAlbumId').value = album.id;
   el('photoId').value = photo?.id || '';
   for (const key of ['url','category']) form.elements.namedItem(key).value = photo?.[key] ?? '';
@@ -1717,8 +1772,8 @@ async function savePhoto(event) {
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
   const album = getAlbum(data.photoAlbumId);
-  if (!album) return toast('Album tidak ditemukan.',true);
-  if (!safeUrl(data.url)) return toast('URL foto harus HTTPS.',true);
+  if (!album) return toast('Album not found.',true);
+  if (!safeUrl(data.url)) return toast('Photo URL must use HTTPS.',true);
   const photos = [...normalizedPhotos(album)];
   const existingIndex = photos.findIndex(p => p.id === data.photoId);
   const old = existingIndex >= 0 ? photos[existingIndex] : null;
@@ -1732,7 +1787,7 @@ async function savePhoto(event) {
     category:data.category.trim(),
     exif:Object.fromEntries(['camera','lens','focalLength','shutter','aperture','iso'].map(key => [key,data[key].trim()]))
   };
-  if (!payload.title) return toast('Judul foto wajib diisi.',true);
+  if (!payload.title) return toast('Photo title is required.',true);
   if (existingIndex >= 0) photos[existingIndex] = payload;
   else photos.push(payload);
   const button = form.querySelector('[type="submit"]');
@@ -1743,7 +1798,7 @@ async function savePhoto(event) {
       photos, updatedAt:firebase.fs.serverTimestamp()
     });
     closeModal('photoFormModal');
-    toast(existingIndex >= 0 ? 'Foto berhasil diperbarui.' : 'Foto berhasil ditambahkan ke album.');
+    toast(existingIndex >= 0 ? 'Photo updated.' : 'Photo added to album.');
   } catch(error) { toast(friendlyError(error),true); }
   finally { button.disabled = false; }
 }
@@ -1753,20 +1808,20 @@ async function deletePhoto(photoId) {
   const album = getAlbum(state.activeAlbumId);
   if (!album) return;
   const photo = normalizedPhotos(album).find((p) => p.id === photoId);
-  if (!photo || !window.confirm(`Hapus referensi foto "${photo.title}" dari album?`)) return;
+  if (!photo || !window.confirm(`Remove "${photo.title}" from this album?`)) return;
   const photos = normalizedPhotos(album).filter((p) => p.id !== photoId);
   try {
     await persistDemoAlbumsIfNeeded();
     await firebase.fs.updateDoc(firebase.fs.doc(firebase.db,'albums',album.id), {
       photos, updatedAt: firebase.fs.serverTimestamp()
     });
-    toast('Foto dihapus dari album. File di ImageKit tidak dihapus.');
+    toast('Photo removed from album. The hosted file was not deleted.');
   } catch (error) { toast(friendlyError(error), true); }
 }
 
 async function importDemoContent() {
   if (!requireAdmin()) return;
-  if (!state.albumsLoaded || state.albums.length) return toast('Import hanya tersedia saat koleksi albums kosong.', true);
+  if (!state.albumsLoaded || state.albums.length) return toast('Sample import is only available when the album collection is empty.', true);
   if (!window.confirm('Publikasikan 4 album demo dan pengaturan halaman awal ke Firestore? Data akan dapat diedit setelah import.')) return;
   const button = el('adminImportDemo');
   button.disabled = true;
@@ -1781,7 +1836,7 @@ async function importDemoContent() {
     }
     await batch.commit();
     state.site.albumsInitialized = true;
-    toast('Empat album demo berhasil dipublikasikan ke Firestore.');
+    toast('Four sample albums published to Firestore.');
   } catch (error) { toast(friendlyError(error), true); }
   finally { button.disabled = false; }
 }
@@ -1833,7 +1888,12 @@ function attachEvents() {
   });
   el('languageSelect').addEventListener('change', event => setLanguage(event.target.value));
   el('ambientToggle').addEventListener('click',toggleAmbientMusic);
-  el('ambientAudio').addEventListener('error',()=>{ambientRequestId++;cancelAnimationFrame(ambientFadeFrame);if(ambientPlaying)toast('Audio tidak dapat dimuat. Periksa URL soundtrack.',true);ambientPlaying=false;updateAmbientButton();});
+  // Capture the first eligible interaction, even when the visitor clicks
+  // another control (album, highlight, menu, language selector, etc.).
+  for (const name of ['pointerdown','pointerup','keydown','click']) {
+    document.addEventListener(name, retryAmbientAfterFirstInteraction, true);
+  }
+  el('ambientAudio').addEventListener('error',()=>{ambientGestureRetryArmed=false;ambientRequestId++;cancelAnimationFrame(ambientFadeFrame);if(ambientPlaying)toast('Audio could not load. Check the soundtrack URL.',true);ambientPlaying=false;updateAmbientButton();});
   el('ambientAudio').addEventListener('pause',()=>{if(ambientPlaying && el('ambientAudio').paused){ambientPlaying=false;updateAmbientButton();}});
   el('siteUiTextLanguage').addEventListener('change',event=>{captureUiTextLocale();switchUiTextLocale(event.target.value);});
   el('siteAccentHex').addEventListener('input',event=>{if(HEX_COLOR.test(event.target.value))syncAccentEditor(event.target.value);});
@@ -1848,6 +1908,11 @@ function attachEvents() {
   });
   el('resetTypography').addEventListener('click',()=>syncTypographyEditor(Object.fromEntries(Object.entries(TYPOGRAPHY_RULES).map(([k,v])=>[k,v[2]]))));
   el('siteMusicVolume').addEventListener('input',event=>{el('siteMusicVolumeOut').textContent=`${event.target.value}%`;});
+  el('siteProfileSize').addEventListener('input',event=>{
+    const size = clampProfileSize(event.target.value);
+    el('siteProfileSizeOut').textContent = `${size} px`;
+    applyProfileSize(size); // Live preview; restored on Cancel/close.
+  });
   el('siteEditLanguage').addEventListener('change', event => {
     captureSiteLocale(); showSiteLocale(event.target.value);
   });
@@ -1974,21 +2039,21 @@ function validateImageField(input) {
   if (!value) return;
   const safe = safeUrl(value);
   if (!safe) {
-    target.textContent = 'URL tidak valid. Gunakan URL HTTPS publik.';
+    target.textContent = 'Invalid image URL. Use public HTTPS.';
     target.dataset.status = 'error';
     return;
   }
-  target.textContent = 'Memeriksa gambar...';
+  target.textContent = 'Checking image...';
   target.dataset.status = 'loading';
   loadImageUrl(safe, input.id === 'siteStoryImage' || input.id === 'highlightImage' ? 'large' : 'thumb').then(usable => {
     if (imagePreviewVersions.get(input.id) !== version) return;
     if (!usable) {
-      target.textContent = 'Gagal dimuat. Periksa URL asli, izin publik, dan batas ImageKit.';
+      target.textContent = 'Could not load image. Check the original URL, public access and ImageKit limits.';
       target.dataset.status = 'error';
     } else {
       target.textContent = usable === originalImageUrl(safe)
-        ? '✓ Gambar asli berhasil dimuat.'
-        : '✓ Gambar berhasil dimuat dari URL alternatif.';
+        ? '✓ Original image loaded.'
+        : '✓ Image loaded from a fallback URL.';
       target.dataset.status = 'ok';
     }
   });
