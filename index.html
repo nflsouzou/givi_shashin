@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0B0E14">
   <meta name="description" content="Portfolio fotografi editorial: potret, perjalanan, arsitektur, dan cerita visual.">
-  <title>ATELIER — Photography Portfolio</title>
+  <title>GIVI SHASHIN — Photography Portfolio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=20261124-lightbox-fit-zoom-v2">
-  <style>body.is-booting #siteShell { visibility:hidden; } .boot-screen {position:fixed;inset:0;z-index:9999;background:#0B0E14;color:#F8FAFC;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;font:700 12px/1.5 Arial,sans-serif;letter-spacing:.2em}.boot-screen__mark{height:24px;width:24px;border:2px solid #e11d48;transform:rotate(45deg);animation:bootSpin 1.8s ease-in-out infinite}.boot-screen span{color:#94a3b8;font-size:10px;letter-spacing:.09em}.boot-screen button{border:1px solid #e11d48;background:transparent;color:white;padding:10px 18px}@keyframes bootSpin{50%{transform:rotate(135deg) scale(.8)}}</style>
+  <link rel="stylesheet" href="./style.css?v=20261125-revisi-01-05-v1">
+  <style>body.is-booting #siteShell { visibility:hidden; } .boot-screen {position:fixed;inset:0;z-index:9999;background:#0B0E14;color:#F8FAFC;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;font:700 12px/1.5 Arial,sans-serif;letter-spacing:.2em}.boot-screen__mark{height:24px;width:24px;border:2px solid var(--accent,#e11d48);transform:rotate(45deg);animation:bootSpin 1.8s ease-in-out infinite}.boot-screen span{color:#94a3b8;font-size:10px;letter-spacing:.09em}.boot-screen button{border:1px solid var(--accent,#e11d48);background:transparent;color:white;padding:10px 18px}@keyframes bootSpin{50%{transform:rotate(135deg) scale(.8)}}</style>
 </head>
 <body class="is-booting">
   <div class="boot-screen" id="bootScreen" role="status" aria-live="polite">
@@ -34,6 +34,10 @@
         <a class="nav__link" href="#contact" data-i18n="navContact">CONTACT</a>
       </nav>
       <div class="header-actions">
+        <button class="icon-button ambient-toggle" id="ambientToggle" type="button" aria-pressed="false" aria-label="Turn on ambient music" title="Ambient music off" hidden>
+          <svg class="ambient-toggle__off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m16 9 5 6m0-6-5 6"/></svg>
+          <svg class="ambient-toggle__on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
+        </button>
         <label for="languageSelect" class="sr-only">Website language</label>
         <select id="languageSelect" class="language-select" aria-label="Website language">
           <option value="en">EN</option><option value="id">ID</option><option value="ja">日本語</option>
@@ -66,7 +70,6 @@
             <p class="eyebrow eyebrow--light"><span class="eyebrow__rule"></span><span id="heroKicker">ART IN EVERY MOMENT</span></p>
             <h1 id="heroTitle">BEYOND<br>THE FRAME<span class="title-period">.</span></h1>
             <p class="hero__description" id="heroDescription">Menangkap cerita yang tak selalu dapat diungkapkan dengan kata-kata.</p>
-            <a class="text-action" href="#albums"><span data-i18n="explore">EXPLORE MY WORK</span> <span aria-hidden="true">↗</span></a>
           </div>
           <aside class="hero__highlights" aria-label="Pilih sorotan foto">
             <div class="hero__highlights-label"><span data-i18n="featuredHighlights">FEATURED HIGHLIGHTS</span><span class="hero__label-line"></span></div>
@@ -113,7 +116,13 @@
             <p class="section-heading__description" data-i18n="albumsSubtitle">Berbagai sudut pandang, satu bahasa: cahaya.</p>
             <button type="button" class="admin-add admin-only" id="addAlbumButton" hidden data-i18n="addAlbum">+ TAMBAH ALBUM BARU</button>
           </div>
-          <div class="album-grid" id="albumGrid" aria-live="polite"></div>
+          <div class="album-carousel" id="albumCarousel" aria-label="Album photography carousel">
+            <button class="album-carousel__arrow album-carousel__arrow--prev" id="albumArrowPrev" type="button" aria-label="Previous album">‹</button>
+            <div class="album-carousel__viewport" id="albumCarouselViewport" tabindex="0" aria-label="Swipe or scroll to explore albums">
+              <div class="album-grid is-carousel" id="albumGrid" aria-live="polite"></div>
+            </div>
+            <button class="album-carousel__arrow album-carousel__arrow--next" id="albumArrowNext" type="button" aria-label="Next album">›</button>
+          </div>
           <div class="empty-state" id="albumEmpty" hidden>
             <span class="empty-state__icon">◎</span>
             <h3>Belum ada album yang cocok</h3>
@@ -121,13 +130,15 @@
             <button type="button" class="outline-button" id="resetFilters" data-i18n="resetFilter">RESET FILTER</button>
           </div>
           <div class="album-pagination" aria-label="Navigasi album">
+            <button type="button" id="albumExpand" class="album-pagination__button" aria-controls="albumGrid"><span data-i18n="viewMoreAlbums">VIEW MORE ALBUMS</span> <span class="album-pagination__arrow" aria-hidden="true">↓</span></button>
             <p class="album-pagination__status" id="albumPagerStatus" role="status" aria-live="polite" hidden></p>
             <button type="button" id="albumLoadMore" class="album-pagination__button" aria-controls="albumGrid" hidden>
               <span data-i18n="loadMore">LOAD MORE</span> <span class="album-pagination__count">+<span id="albumLoadMoreCount">8</span></span>
               <span class="album-pagination__arrow" aria-hidden="true">↓</span>
             </button>
+            <button type="button" id="albumCollapse" class="album-pagination__button album-pagination__button--collapse" aria-controls="albumGrid" hidden><span data-i18n="collapseAlbums">COLLAPSE ALBUMS</span><span class="album-pagination__arrow" aria-hidden="true">↑</span></button>
           </div>
-          <p class="albums-section__footnote">THE BEAUTY IS IN THE IN-BETWEEN <span>·</span> © <span id="currentYear">2026</span></p>
+          <p class="albums-section__footnote"><span data-i18n="albumFootnote">THE BEAUTY IS IN THE IN-BETWEEN</span> <span>·</span> © <span id="currentYear">2026</span></p>
         </div>
       </section>
 
@@ -237,6 +248,41 @@
           <div><label for="siteDefaultLanguage">Bahasa default website</label><select id="siteDefaultLanguage" name="defaultLanguage"><option value="en">English</option><option value="id">Indonesia</option><option value="ja">日本語</option></select></div>
         </div>
         <div class="form-grid editor-lang-guide"><div><label for="siteEditLanguage">Edit teks untuk bahasa</label><select id="siteEditLanguage"><option value="en">English</option><option value="id">Indonesia</option><option value="ja">日本語</option></select></div><p>Ubah bahasa di sini untuk mengisi judul/bio/deskripsi per bahasa. URL gambar dan nama brand digunakan bersama.</p></div>
+        <div class="editor-divider"><span>APPEARANCE · ACCENT COLOR</span></div>
+        <div class="theme-editor">
+          <div class="theme-editor__swatches" id="themePresets" role="group" aria-label="Preset warna tema">
+            <button type="button" data-theme-color="#E11D48" style="--swatch:#E11D48" title="Crimson" aria-label="Crimson"></button>
+            <button type="button" data-theme-color="#3B82F6" style="--swatch:#3B82F6" title="Ocean Blue" aria-label="Ocean Blue"></button>
+            <button type="button" data-theme-color="#10B981" style="--swatch:#10B981" title="Emerald" aria-label="Emerald"></button>
+            <button type="button" data-theme-color="#8B5CF6" style="--swatch:#8B5CF6" title="Royal Purple" aria-label="Royal Purple"></button>
+            <button type="button" data-theme-color="#F59E0B" style="--swatch:#F59E0B" title="Amber" aria-label="Amber"></button>
+            <button type="button" data-theme-color="#06B6D4" style="--swatch:#06B6D4" title="Ice Cyan" aria-label="Ice Cyan"></button>
+          </div>
+          <div class="form-grid"><div><label for="siteAccentPicker">Custom color</label><input type="color" id="siteAccentPicker" value="#e11d48" aria-label="Pilih warna aksen"></div><div><label for="siteAccentHex">Kode warna HEX</label><input id="siteAccentHex" name="accentColor" type="text" maxlength="7" pattern="#[0-9a-fA-F]{6}" value="#E11D48" required></div></div>
+          <button type="button" id="resetThemeColor" class="outline-button">RESET COLOR ↺</button>
+          <p class="field-hint">Warna background dan tulisan tetap dark navy / putih. Hanya aksen, garis, ikon, outline, tombol, dan hover yang berubah.</p>
+        </div>
+        <div class="editor-divider"><span>TYPOGRAPHY · LIVE PREVIEW</span></div>
+        <div class="typography-editor" id="typographyEditor">
+          <label>Small Label <output id="tySmallOut">13 px</output><input type="range" name="tySmall" min="11" max="20" step="1" value="13"></label>
+          <label>Body / Description <output id="tyBodyOut">16 px</output><input type="range" name="tyBody" min="13" max="24" step="1" value="16"></label>
+          <label>Menu / Navigation <output id="tyNavOut">13 px</output><input type="range" name="tyNav" min="11" max="20" step="1" value="13"></label>
+          <label>Button <output id="tyButtonOut">13 px</output><input type="range" name="tyButton" min="11" max="19" step="1" value="13"></label>
+          <label>Album Title <output id="tyAlbumOut">28 px</output><input type="range" name="tyAlbum" min="20" max="46" step="1" value="28"></label>
+          <label>Section Heading <output id="tySectionOut">72 px</output><input type="range" name="tySection" min="42" max="102" step="2" value="72"></label>
+          <label>Hero Headline <output id="tyHeroOut">144 px</output><input type="range" name="tyHero" min="75" max="180" step="1" value="144"></label>
+          <label>Showcase Headline <output id="tyStoryOut">112 px</output><input type="range" name="tyStory" min="64" max="156" step="2" value="112"></label>
+          <label>Contact Headline <output id="tyContactOut">96 px</output><input type="range" name="tyContact" min="50" max="136" step="2" value="96"></label>
+          <button type="button" id="resetTypography" class="outline-button">RESET TYPOGRAPHY ↺</button>
+        </div>
+        <div class="editor-divider"><span>AMBIENT MUSIC · SINGLE TRACK</span></div>
+        <label class="music-editor__switch"><input id="siteMusicEnabled" name="musicEnabled" type="checkbox"><span>Aktifkan tombol musik di navbar (default pengunjung OFF)</span></label>
+        <label for="siteMusicUrl">Public URL file musik (MP3 / audio)</label><input id="siteMusicUrl" name="musicUrl" type="url" placeholder="https://example.com/ambient.mp3">
+        <label class="music-editor__volume">Volume default <output id="siteMusicVolumeOut">25%</output><input id="siteMusicVolume" name="musicVolume" type="range" min="0" max="100" value="25"></label>
+        <p class="field-hint">Gunakan musik milik sendiri atau dengan izin publik. Pemutaran baru dimulai setelah pengunjung menekan ikon; tanpa player/playlist.</p>
+        <div class="editor-divider"><span>WEBSITE LABELS · EDITABLE FOR 3 LANGUAGES</span></div>
+        <div class="form-grid editor-lang-guide"><div><label for="siteUiTextLanguage">Bahasa teks website</label><select id="siteUiTextLanguage"><option value="en">English</option><option value="id">Indonesia</option><option value="ja">日本語</option></select></div><p>Atur teks menu, tombol, judul section, kontak, footer, dan galeri. Konten hero/album/foto tetap diedit di editor masing-masing.</p></div>
+        <div class="ui-text-fields" id="siteUiTextFields"></div>
         <div class="form-grid"><div><label for="siteBrand">Nama brand</label><input id="siteBrand" name="brandName" maxlength="50" required></div><div><label for="siteBrandTagline">Tagline brand</label><input id="siteBrandTagline" name="brandTagline" maxlength="50"></div></div>
         <div class="form-grid"><div><label for="siteEmail">Email kontak</label><input id="siteEmail" name="contactEmail" type="email" required></div><div><label for="siteInstagram">URL Instagram</label><input id="siteInstagram" name="instagramUrl" type="url" placeholder="https://instagram.com/username"></div></div>
         <div class="editor-divider"><span>PROFIL FOTOGRAFER · BAGIAN RINGKAS DI BAWAH HERO</span></div>
@@ -333,7 +379,8 @@
     <button id="adminImportDemo" type="button" hidden>IMPORT DEMO</button>
     <button id="adminLogout" type="button">LOGOUT ↗</button>
   </div>
+  <audio id="ambientAudio" preload="none" loop playsinline></audio>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <script type="module" src="./app.js?v=20261124-lightbox-fit-zoom-v2"></script>
+  <script type="module" src="./app.js?v=20261125-revisi-01-05-v1"></script>
 </body>
 </html>
