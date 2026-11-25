@@ -1092,20 +1092,37 @@ function installLightboxZoom() {
   paintLightboxZoom();
 }
 
-// One-track ambient soundtrack: intentionally user-initiated; never autoplay with sound.
+// One-track ambient soundtrack — Smart Autoplay (Revisi 06).
+// A real sound-on autoplay attempt is made after Firestore settings are loaded.
+// Browser policy may reject the attempt. The icon reflects actual playback,
+// and a visitor's explicit OFF choice is remembered locally (not in Firestore).
+const AMBIENT_PREF_KEY = 'givi-shashin-ambient-preference-v1';
 let ambientFadeFrame = 0;
 let ambientPlaying = false;
 let ambientDesiredVolume = 0.25;
+let ambientRequestId = 0; // Ignore late play() resolutions after OFF or source changes.
+let ambientAutoplayAttemptedUrl = ''; // Never retry automatically on Firestore snapshots.
+
+function readAmbientPreference() {
+  try {
+    const value = window.localStorage.getItem(AMBIENT_PREF_KEY);
+    return value === 'off' || value === 'on' ? value : null;
+  } catch { return null; } // Storage can be disabled by private browsing/policies.
+}
+function rememberAmbientPreference(value) {
+  try { window.localStorage.setItem(AMBIENT_PREF_KEY, value); } catch { /* Optional */ }
+}
 function fadeAmbientTo(target, pauseAfter = false) {
   const audio = el('ambientAudio');
   cancelAnimationFrame(ambientFadeFrame);
   const from = audio.volume;
   const start = performance.now();
   const duration = 460;
+  const volume = Math.max(0, Math.min(1, Number(target) || 0));
   function frame(now) {
-    const fraction = Math.min(1, (now-start)/duration);
-    const eased = fraction*fraction*(3-2*fraction);
-    audio.volume = Math.max(0,Math.min(1,from+(target-from)*eased));
+    const fraction = Math.min(1, (now - start) / duration);
+    const eased = fraction * fraction * (3 - 2 * fraction);
+    audio.volume = Math.max(0, Math.min(1, from + (volume - from) * eased));
     if (fraction < 1) ambientFadeFrame = requestAnimationFrame(frame);
     else if (pauseAfter && !ambientPlaying) audio.pause();
   }
@@ -1115,47 +1132,104 @@ function updateAmbientButton() {
   const button = el('ambientToggle');
   const usable = state.site.musicEnabled === true && !!safeUrl(state.site.musicUrl);
   button.hidden = !usable;
-  button.classList.toggle('is-playing', ambientPlaying);
-  button.setAttribute('aria-pressed',String(ambientPlaying));
-  button.setAttribute('aria-label',ambientPlaying ? 'Mute ambient music' : 'Play ambient music');
-  button.title = ambientPlaying ? 'Mute ambient music' : 'Play ambient music';
+  // Icons must reflect actual playback, never merely the desired autoplay state.
+  const playingNow = usable && ambientPlaying && !el('ambientAudio').paused;
+  button.classList.toggle('is-playing', playingNow);
+  button.setAttribute('aria-pressed', String(playingNow));
+  button.setAttribute('aria-label', playingNow ? 'Mute ambient music' : 'Play ambient music');
+  button.title = playingNow ? 'Mute ambient music' : 'Play ambient music';
+}
+async function startAmbientMusic({ auto = false } = {}) {
+  const audio = el('ambientAudio');
+  const url = safeUrl(state.site.musicUrl);
+  if (state.site.musicEnabled !== true || !url || audio.getAttribute('src') !== url) return false;
+  const requestId = ++ambientRequestId;
+  cancelAnimationFrame(ambientFadeFrame);
+  audio.volume = 0; // Gentle fade in once playback is actually permitted.
+  try {
+    await audio.play();
+    // Ignore stale promises from an old URL or an earlier user action.
+    // Do not pause() here: a newer request may already be playing this element.
+    if (requestId !== ambientRequestId) return false;
+    if (state.site.musicEnabled !== true || audio.getAttribute('src') !== url ||
+        (auto && readAmbientPreference() === 'off')) {
+      audio.pause();
+      updateAmbientButton();
+      return false;
+    }
+    ambientPlaying = true;
+    fadeAmbientTo(ambientDesiredVolume);
+    if (!auto) rememberAmbientPreference('on');
+    updateAmbientButton();
+    return true;
+  } catch (error) {
+    if (requestId !== ambientRequestId) return false;
+    ambientPlaying = false;
+    audio.pause();
+    updateAmbientButton();
+    // NotAllowedError is expected on many first visits. Do not show a noisy toast.
+    if (!auto) {
+      const message = error?.name === 'NotAllowedError'
+        ? 'Browser memerlukan klik untuk memutar musik.'
+        : 'Musik tidak dapat diputar. Periksa URL MP3 publik.';
+      toast(message, true);
+    } else if (error?.name !== 'NotAllowedError') {
+      console.warn('[Givi Shashin] Ambient autoplay unavailable:', error);
+    }
+    return false;
+  }
 }
 function configureAmbientAudio() {
   const audio = el('ambientAudio');
   const url = safeUrl(state.site.musicUrl);
   const enabled = state.site.musicEnabled === true && !!url;
-  ambientDesiredVolume = Math.min(1,Math.max(0,Number(state.site.musicVolume ?? 25)/100));
+  ambientDesiredVolume = Math.min(1, Math.max(0, Number(state.site.musicVolume ?? 25) / 100));
   if (!enabled) {
+    ambientRequestId++;
+    cancelAnimationFrame(ambientFadeFrame);
     ambientPlaying = false;
     audio.pause();
-    audio.removeAttribute('src');
-    audio.load();
+    if (audio.hasAttribute('src')) {
+      audio.removeAttribute('src');
+      audio.load();
+    }
+    ambientAutoplayAttemptedUrl = '';
   } else if (audio.getAttribute('src') !== url) {
+    ambientRequestId++;
+    cancelAnimationFrame(ambientFadeFrame);
     ambientPlaying = false;
     audio.pause();
     audio.src = url;
     audio.load();
-  } else if (ambientPlaying) fadeAmbientTo(ambientDesiredVolume);
+    ambientAutoplayAttemptedUrl = '';
+  } else if (ambientPlaying && !audio.paused) {
+    fadeAmbientTo(ambientDesiredVolume);
+  }
   audio.loop = true;
   updateAmbientButton();
+  // Default is ON: make one best-effort audible attempt per loaded track.
+  // If the browser blocks autoplay, the icon stays muted until a real click.
+  if (enabled && readAmbientPreference() !== 'off' &&
+      ambientAutoplayAttemptedUrl !== url && !ambientPlaying) {
+    ambientAutoplayAttemptedUrl = url;
+    void startAmbientMusic({ auto: true });
+  }
 }
-async function toggleAmbientMusic() {
+function toggleAmbientMusic() {
   const audio = el('ambientAudio');
-  if (!state.site.musicEnabled || !safeUrl(state.site.musicUrl)) return;
-  if (ambientPlaying) {
+  if (state.site.musicEnabled !== true || !safeUrl(state.site.musicUrl)) return;
+  if (ambientPlaying && !audio.paused) {
+    // Explicit OFF survives reload, even if autoplay was permitted earlier.
+    rememberAmbientPreference('off');
+    ambientRequestId++;
     ambientPlaying = false;
-    fadeAmbientTo(0,true);
+    fadeAmbientTo(0, true);
     updateAmbientButton();
     return;
   }
-  cancelAnimationFrame(ambientFadeFrame);
-  audio.volume = 0;
-  try {
-    await audio.play(); // invoked from the user's real click
-    ambientPlaying = true;
-    fadeAmbientTo(ambientDesiredVolume);
-  } catch(error) { ambientPlaying = false; toast('Musik tidak dapat diputar. Pastikan URL audio publik mendukung playback browser.',true); }
-  updateAmbientButton();
+  // An OFF click while autoplay is pending must cancel that request, too.
+  // A click to enable media invokes play() directly in this click handler.
+  return startAmbientMusic({ auto: false });
 }
 function isFirebaseConfigured() {
   return ['apiKey','authDomain','projectId','appId'].every((key) =>
@@ -1759,7 +1833,8 @@ function attachEvents() {
   });
   el('languageSelect').addEventListener('change', event => setLanguage(event.target.value));
   el('ambientToggle').addEventListener('click',toggleAmbientMusic);
-  el('ambientAudio').addEventListener('error',()=>{if (ambientPlaying){ambientPlaying=false;updateAmbientButton();toast('Audio tidak dapat dimuat. Periksa URL soundtrack.',true);}});
+  el('ambientAudio').addEventListener('error',()=>{ambientRequestId++;cancelAnimationFrame(ambientFadeFrame);if(ambientPlaying)toast('Audio tidak dapat dimuat. Periksa URL soundtrack.',true);ambientPlaying=false;updateAmbientButton();});
+  el('ambientAudio').addEventListener('pause',()=>{if(ambientPlaying && el('ambientAudio').paused){ambientPlaying=false;updateAmbientButton();}});
   el('siteUiTextLanguage').addEventListener('change',event=>{captureUiTextLocale();switchUiTextLocale(event.target.value);});
   el('siteAccentHex').addEventListener('input',event=>{if(HEX_COLOR.test(event.target.value))syncAccentEditor(event.target.value);});
   el('siteAccentPicker').addEventListener('input',event=>syncAccentEditor(event.target.value));
