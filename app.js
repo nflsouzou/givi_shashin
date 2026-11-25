@@ -32,6 +32,12 @@ const DEFAULT_SITE = {
   brandName: 'ATELIER.',
   defaultLanguage: 'en',
   autoSlideSeconds: 6,
+  accentColor: '#E11D48',
+  typography: { tySmall:13,tyBody:16,tyNav:13,tyButton:13,tyAlbum:28,tySection:72,tyHero:144,tyStory:112,tyContact:96 },
+  uiText: {},
+  musicEnabled: false,
+  musicUrl: '',
+  musicVolume: 25,
   brandTagline: 'PHOTO STORIES',
   profileName: 'YOUR NAME',
   profileRole: 'PHOTOGRAPHER · VISUAL STORYTELLER',
@@ -143,7 +149,7 @@ const TRANSLATIONS = {
     noExif:'EXIF information is unavailable for this photo.',
     albumEmpty:'No matching albums', albumEmptyText:'Try another search or category.',
     create:'LET’S CREATE SOMETHING', selectedWork:'SELECTED WORK',
-    footerDescriptor:'INDEPENDENT PHOTOGRAPHY PORTFOLIO',rights:'ALL RIGHTS RESERVED',noPhotos:'No photos yet in this album.',resetFilter:'RESET FILTER',addAlbum:'+ ADD ALBUM',editProfile:'EDIT PROFILE ↗',editAlbum:'EDIT ALBUM',addPhoto:'+ ADD PHOTO',editSite:'Edit Header / Showcase'
+    footerDescriptor:'INDEPENDENT PHOTOGRAPHY PORTFOLIO',rights:'ALL RIGHTS RESERVED',noPhotos:'No photos yet in this album.',resetFilter:'RESET FILTER',addAlbum:'+ ADD ALBUM',editProfile:'EDIT PROFILE ↗',editAlbum:'EDIT ALBUM',addPhoto:'+ ADD PHOTO',editSite:'Edit Header / Showcase', viewMoreAlbums:'VIEW MORE ALBUMS',collapseAlbums:'COLLAPSE ALBUMS',albumFootnote:'THE BEAUTY IS IN THE IN-BETWEEN', searchPlaceholder:'Search albums, categories, stories…',instagramLabel:'INSTAGRAM',viewPhoto:'VIEW PHOTO',deleteAlbum:'DELETE',editPhoto:'EDIT',deletePhoto:'DELETE'
   },
   id: {
     navHome:'BERANDA',navAlbums:'ALBUM',navAbout:'TENTANG',navContact:'KONTAK',
@@ -158,7 +164,7 @@ const TRANSLATIONS = {
     noExif:'Data EXIF tidak tersedia untuk foto ini.',
     albumEmpty:'Album tidak ditemukan', albumEmptyText:'Coba pencarian atau kategori lainnya.',
     create:'MARI BERKOLABORASI',selectedWork:'KARYA PILIHAN',
-    footerDescriptor:'PORTOFOLIO FOTOGRAFI',rights:'HAK CIPTA DILINDUNGI',noPhotos:'Album ini belum memiliki foto.',resetFilter:'RESET FILTER',addAlbum:'+ TAMBAH ALBUM',editProfile:'EDIT PROFIL ↗',editAlbum:'EDIT ALBUM',addPhoto:'+ TAMBAH FOTO',editSite:'Edit Header / Showcase'
+    footerDescriptor:'PORTOFOLIO FOTOGRAFI',rights:'HAK CIPTA DILINDUNGI',noPhotos:'Album ini belum memiliki foto.',resetFilter:'RESET FILTER',addAlbum:'+ TAMBAH ALBUM',editProfile:'EDIT PROFIL ↗',editAlbum:'EDIT ALBUM',addPhoto:'+ TAMBAH FOTO',editSite:'Edit Header / Showcase',viewMoreAlbums:'LIHAT SEMUA ALBUM',collapseAlbums:'CIUTKAN ALBUM',albumFootnote:'KEINDAHAN ADA DI ANTARA MOMEN',searchPlaceholder:'Cari album, kategori, cerita…',instagramLabel:'INSTAGRAM',viewPhoto:'LIHAT FOTO',deleteAlbum:'HAPUS',editPhoto:'EDIT',deletePhoto:'HAPUS'
   },
   ja: {
     navHome:'ホーム',navAlbums:'アルバム',navAbout:'プロフィール',navContact:'お問い合わせ',
@@ -173,10 +179,59 @@ const TRANSLATIONS = {
     noExif:'EXIF情報はありません。',
     albumEmpty:'アルバムが見つかりません', albumEmptyText:'別のキーワードやカテゴリをお試しください。',
     create:'一緒に作品を作りましょう',selectedWork:'注目の作品',
-    footerDescriptor:'フォトグラフィーポートフォリオ',rights:'無断転載を禁じます',noPhotos:'このアルバムにはまだ写真がありません。',resetFilter:'絞り込みを解除',addAlbum:'+ アルバムを追加',editProfile:'プロフィールを編集 ↗',editAlbum:'アルバムを編集',addPhoto:'+ 写真を追加',editSite:'サイトを編集'
+    footerDescriptor:'フォトグラフィーポートフォリオ',rights:'無断転載を禁じます',noPhotos:'このアルバムにはまだ写真がありません。',resetFilter:'絞り込みを解除',addAlbum:'+ アルバムを追加',editProfile:'プロフィールを編集 ↗',editAlbum:'アルバムを編集',addPhoto:'+ 写真を追加',editSite:'サイトを編集',viewMoreAlbums:'すべてのアルバム',collapseAlbums:'閉じる',albumFootnote:'美しさはその合間にある',searchPlaceholder:'アルバムやカテゴリを検索…',instagramLabel:'インスタグラム',viewPhoto:'写真を見る',deleteAlbum:'削除',editPhoto:'編集',deletePhoto:'削除'
   }
 };
-const t = (key) => TRANSLATIONS[state.language]?.[key] || TRANSLATIONS.en[key] || key;
+const UI_TEXT_FIELDS = [
+  ['NAVBAR', [['navHome','Home menu'],['navAlbums','Albums menu'],['navAbout','About menu'],['navContact','Contact menu'],['featuredHighlights','Label highlight kanan'],['scrollDiscover','Scroll label']]],
+  ['PROFILE & ALBUMS', [['behindLens','Label profil'],['collection','Label di atas Selected Albums'],['selected','Judul album - kata pertama'],['albums','Judul album - kata kedua'],['albumsSubtitle','Subjudul album'],['selectedWork','Label setiap kartu highlight'],['viewMoreAlbums','Tombol buka semua album'],['collapseAlbums','Tombol collapse'],['loadMore','Tombol Load More'],['albumFootnote','Catatan bawah album'],['all','Semua kategori'],['results','Jumlah album (gunakan {shown} dan {total})'],['albumEmpty','Judul album kosong'],['albumEmptyText','Deskripsi album kosong'],['resetFilter','Tombol reset filter'],['searchPlaceholder','Placeholder pencarian']]],
+  ['SHOWCASE & CONTACT', [['create','Tombol showcase'],['contactEyebrow','Label contact'],['contactHead1','Judul contact baris pertama'],['contactHead2','Judul contact baris kedua'],['contactBody','Deskripsi contact'],['letsTalk','Tombol email'],['instagramLabel','Label Instagram'],['footerDescriptor','Deskripsi footer'],['rights','Teks copyright']]],
+  ['GALERI & TOMBOL', [['photo','Singular foto'],['photos','Plural foto'],['noExif','Keterangan jika tidak ada EXIF'],['noPhotos','Album tanpa foto'],['albumExample','Label album demo'],['editProfile','Tombol edit profil'],['editAlbum','Tombol edit album'],['addAlbum','Tombol tambah album'],['addPhoto','Tombol tambah foto'],['addHighlight','Tombol tambah highlight'],['editSite','Tombol edit site'],['viewPhoto','Teks hover foto'],['deleteAlbum','Tombol hapus album'],['editPhoto','Tombol edit foto'],['deletePhoto','Tombol hapus foto']]]
+];
+const ALL_UI_TEXT_KEYS = UI_TEXT_FIELDS.flatMap(([,fields]) => fields.map(([key]) => key));
+const TYPOGRAPHY_RULES = {
+  tySmall:[11,20,13],tyBody:[13,24,16],tyNav:[11,20,13],tyButton:[11,19,13],
+  tyAlbum:[20,46,28],tySection:[42,102,72],tyHero:[75,180,144],
+  tyStory:[64,156,112],tyContact:[50,136,96]
+};
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+const clampRange = (value, rule) => Math.min(rule[1], Math.max(rule[0], Number.isFinite(Number(value)) ? Number(value) : rule[2]));
+function applyAppearance(accent = state.site.accentColor, typography = state.site.typography) {
+  const hex = HEX_COLOR.test(String(accent)) ? String(accent).toUpperCase() : '#E11D48';
+  const root = document.documentElement;
+  root.style.setProperty('--accent', hex);
+  const rgb = [1,3,5].map(x => parseInt(hex.slice(x,x+2),16));
+  root.style.setProperty('--accent-rgb', rgb.join(' '));
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content','#0B0E14');
+  for (const [key, rule] of Object.entries(TYPOGRAPHY_RULES)) {
+    root.style.setProperty('--'+key, `${clampRange(typography?.[key] ?? rule[2],rule)}px`);
+  }
+}
+function renderUiTextFields(language) {
+  const container = el('siteUiTextFields');
+  const dict = uiTextEditorDraft[language] || {};
+  container.innerHTML = UI_TEXT_FIELDS.map(([group,fields]) =>
+    `<fieldset><legend>${escapeHtml(group)}</legend><div class="ui-text-fields__grid">${fields.map(([key,label]) => {
+      const current = dict[key] ?? TRANSLATIONS[language]?.[key] ?? TRANSLATIONS.en[key] ?? '';
+      return `<label>${escapeHtml(label)}<textarea rows="1" data-ui-key="${escapeHtml(key)}" spellcheck="true">${escapeHtml(current)}</textarea></label>`;
+    }).join('')}</div></fieldset>`
+  ).join('');
+}
+let uiTextEditorDraft = {};
+let uiTextEditorLanguage = 'en';
+function captureUiTextLocale() {
+  const draft = uiTextEditorDraft[uiTextEditorLanguage] || {};
+  el('siteUiTextFields').querySelectorAll('[data-ui-key]').forEach(field => {
+    draft[field.dataset.uiKey] = field.value;
+  });
+  uiTextEditorDraft[uiTextEditorLanguage] = draft;
+}
+function switchUiTextLocale(language) {
+  uiTextEditorLanguage = LANGUAGES.includes(language) ? language : 'en';
+  el('siteUiTextLanguage').value = uiTextEditorLanguage;
+  renderUiTextFields(uiTextEditorLanguage);
+}
+const t = (key) => state.site?.uiText?.[state.language]?.[key] || TRANSLATIONS[state.language]?.[key] || TRANSLATIONS.en[key] || key;
 function translateContent(item, key) {
   const localized = item?.translations?.[state.language]?.[key];
   return typeof localized === 'string' && localized.trim() ? localized : (item?.[key] ?? '');
@@ -195,7 +250,9 @@ function applyLanguage(shouldRender = true) {
     if (title) title.textContent = t('albumEmpty');
     if (description) description.textContent = t('albumEmptyText');
   }
-  el('searchInput').placeholder = state.language === 'ja' ? 'アルバムやカテゴリを検索…' : (state.language === 'id' ? 'Cari album, kategori, cerita…' : 'Search albums, categories, stories…');
+  el('searchInput').placeholder = t('searchPlaceholder');
+  el('instagramLink').textContent = t('instagramLabel') + ' ↗';
+  document.documentElement.style.setProperty('--view-photo-label', JSON.stringify(t('viewPhoto')));
   if (shouldRender) {
     renderBrandAndStory();
     setSlide(state.activeSlide, false);
@@ -258,11 +315,14 @@ function finishBoot(warning = '') {
   state.booted = true;
   if (warning) console.warn('[Givi Shashin]', warning);
   applyLanguage(false);
+  applyAppearance();
+  configureAmbientAudio();
   renderBrandAndStory();
   setSlide(Math.min(state.activeSlide, getHighlights().length - 1),true);
   renderAlbums();
   updateAdminUi();
   resetAutoSlide();
+  startCarouselAnimation();
   const loader = el('bootScreen');
   document.body.classList.remove('is-booting');
   loader.hidden = true;
@@ -292,6 +352,9 @@ const state = {
   currentCategory: 'ALL',
   currentQuery: '',
   visibleAlbumCount: ALBUM_PAGE_SIZE,
+  albumsExpanded: false,
+  albumCarouselHover: false,
+  albumCarouselDrag: false,
   modalStack: [],
   lastFocus: null,
   backgroundSlot: 0
@@ -616,38 +679,142 @@ function renderFilters() {
   ).join('');
 }
 
-function renderAlbums() {
+// Album carousel is the default view. Expanded view remains paginated by 8.
+// Three repeated segments allow seamless wrapping without cloning Firestore data.
+let carouselRaf = 0;
+let carouselLastFrame = 0;
+let carouselAutoFraction = 0;
+let carouselIdleUntil = 0;
+let carouselSegment = 0;
+let carouselDragState = null;
+const CAROUSEL_IDLE_MS = 5000;
+const CAROUSEL_SPEED_PX = 15;
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function postponeCarouselAuto(ms = CAROUSEL_IDLE_MS) {
+  carouselIdleUntil = performance.now() + ms;
+}
+function normalizeCarouselPosition() {
+  if (state.albumsExpanded || !carouselSegment) return;
+  const vp = el('albumCarouselViewport');
+  if (vp.scrollLeft < carouselSegment * .5) vp.scrollLeft += carouselSegment;
+  else if (vp.scrollLeft >= carouselSegment * 1.5) vp.scrollLeft -= carouselSegment;
+}
+function resetCarouselPosition() {
+  if (state.albumsExpanded) return;
+  const vp = el('albumCarouselViewport');
+  const first = el('albumGrid').querySelector('.album-card');
+  if (!first) {carouselSegment = 0;return;}
+  const gap = parseFloat(getComputedStyle(el('albumGrid')).gap) || 0;
+  const count = Number(el('albumGrid').dataset.albumCount || 0);
+  carouselSegment = (first.getBoundingClientRect().width + gap) * count;
+  vp.scrollLeft = carouselSegment;
+  postponeCarouselAuto();
+}
+function renderAlbumCard(album, index, duplicate = false) {
+  const demo = isDemoAlbum(album);
+  const cover = safeUrl(album.coverUrl) || safeUrl(normalizedPhotos(album)[0]?.url) || DEFAULT_SITE.highlights[0].imageUrl;
+  const title = translateContent(album,'title');
+  return `<article class="album-card" ${duplicate ? 'aria-hidden="true"' : ''}>
+    <button class="album-card__link" type="button" data-open-album="${e(album.id)}" aria-label="Open album ${e(title)}" ${duplicate ? 'tabindex="-1"' : ''}>
+      <span class="album-card__image-wrap"><img class="album-card__image" loading="lazy" ${resilientImageAttrs(cover)} alt="Cover album ${e(title)}">
+        <span class="album-card__type">${e(album.category || 'PORTFOLIO')}</span><span class="album-card__sequence">${capitalizeId(index)}</span></span>
+      <span class="album-card__info"><strong class="album-card__title">${e(title)}</strong><span class="album-card__description">${e(translateContent(album,'description'))}</span></span>
+    </button>
+    ${state.admin ? `<div class="album-card__actions"><button class="mini-button" type="button" data-edit-album="${e(album.id)}" ${duplicate ? 'tabindex="-1"' : ''}>${e(t('editAlbum'))}</button><button class="mini-button mini-button--danger" type="button" data-delete-album="${e(album.id)}" ${duplicate ? 'tabindex="-1"' : ''}>${e(t('deleteAlbum'))}</button></div>${demo ? `<p class="demo-tag">${e(t('albumExample'))}</p>` : ''}` : ''}
+  </article>`;
+}
+function getFilteredAlbums() {
   const query = state.currentQuery.trim().toLocaleLowerCase('id-ID');
-  const selected = albumsToDisplay().slice().sort(bySortOrder).filter((album) => {
+  return albumsToDisplay().slice().sort(bySortOrder).filter(album => {
     const matchesCategory = state.currentCategory === 'ALL' || String(album.category || '').toUpperCase() === state.currentCategory;
-    const text = [album.title, album.description, album.category, translateContent(album,'title'), translateContent(album,'description')].join(' ').toLocaleLowerCase();
+    const text = [album.title,album.description,album.category,translateContent(album,'title'),translateContent(album,'description')].join(' ').toLocaleLowerCase();
     return matchesCategory && (!query || text.includes(query));
   });
-  const visible = selected.slice(0, state.visibleAlbumCount);
-  el('albumGrid').innerHTML = visible.map((album,index) => {
-    const demo = isDemoAlbum(album);
-    const cover = safeUrl(album.coverUrl) || safeUrl(normalizedPhotos(album)[0]?.url) || DEFAULT_SITE.highlights[0].imageUrl;
-    return `<article class="album-card">
-      <button class="album-card__link" type="button" data-open-album="${e(album.id)}" aria-label="Open album ${e(translateContent(album,'title'))}">
-        <span class="album-card__image-wrap"><img class="album-card__image" loading="lazy" ${resilientImageAttrs(cover)} alt="Cover album ${e(album.title)}">
-          <span class="album-card__type">${e(album.category || 'PORTFOLIO')}</span><span class="album-card__sequence">${capitalizeId(index)}</span></span>
-        <span class="album-card__info"><strong class="album-card__title">${e(translateContent(album,'title'))}</strong><span class="album-card__description">${e(translateContent(album,'description'))}</span></span>
-      </button>
-      ${state.admin ? `<div class="album-card__actions"><button class="mini-button" type="button" data-edit-album="${e(album.id)}">EDIT ALBUM</button><button class="mini-button mini-button--danger" type="button" data-delete-album="${e(album.id)}">HAPUS</button></div>${demo ? `<p class="demo-tag">${e(t('albumExample'))}</p>` : ''}` : ''}
-    </article>`;
-  }).join('');
-  el('albumEmpty').hidden = selected.length > 0;
-  const loadMore = el('albumLoadMore');
-  const remaining = Math.max(0, selected.length - visible.length);
-  loadMore.hidden = remaining === 0;
-  if (remaining > 0) {
-    el('albumLoadMoreCount').textContent = String(Math.min(ALBUM_PAGE_SIZE, remaining));
+}
+function renderAlbums() {
+  const selected = getFilteredAlbums();
+  // Search and category filters need the whole current result set, not auto-moving covers.
+  const expanded = state.albumsExpanded || state.currentQuery.trim() !== '' || state.currentCategory !== 'ALL';
+  const grid = el('albumGrid');
+  const carousel = el('albumCarousel');
+  carousel.classList.toggle('is-expanded',expanded);
+  grid.classList.toggle('is-carousel',!expanded);
+  grid.dataset.albumCount = String(selected.length);
+  if (expanded) {
+    const visible = selected.slice(0,state.visibleAlbumCount);
+    grid.innerHTML = visible.map((album,i) => renderAlbumCard(album,i)).join('');
+    el('albumExpand').hidden = true;
+    el('albumCollapse').hidden = !state.albumsExpanded;
+    const remaining = Math.max(0,selected.length-visible.length);
+    el('albumLoadMore').hidden = remaining === 0;
+    if (remaining) el('albumLoadMoreCount').textContent = String(Math.min(ALBUM_PAGE_SIZE,remaining));
+    el('albumPagerStatus').hidden = selected.length <= ALBUM_PAGE_SIZE;
+    el('albumPagerStatus').textContent = formatted('results',{shown:visible.length,total:selected.length});
+  } else {
+    // When only one album exists, no repeated DOM is necessary.
+    const duplicate = selected.length > 1;
+    const base = selected.map((a,i) => renderAlbumCard(a,i));
+    const clones = duplicate ? selected.map((a,i) => renderAlbumCard(a,i,true)) : [];
+    grid.innerHTML = [...clones,...base,...clones].join('');
+    el('albumExpand').hidden = selected.length <= 4;
+    el('albumCollapse').hidden = true;
+    el('albumLoadMore').hidden = true;
+    el('albumPagerStatus').hidden = true;
+    requestAnimationFrame(resetCarouselPosition);
   }
-  const pagerStatus = el('albumPagerStatus');
-  pagerStatus.hidden = selected.length <= ALBUM_PAGE_SIZE;
-  pagerStatus.textContent = formatted('results', {shown:visible.length, total:selected.length});
+  carousel.classList.toggle('is-single',selected.length <= 1);
+  el('albumEmpty').hidden = selected.length > 0;
   renderFilters();
   refreshImportButton();
+}
+function expandAlbums() {
+  state.albumsExpanded = true;
+  state.visibleAlbumCount = ALBUM_PAGE_SIZE;
+  renderAlbums();
+}
+function collapseAlbums() {
+  state.albumsExpanded = false;
+  state.visibleAlbumCount = ALBUM_PAGE_SIZE;
+  state.currentCategory = 'ALL';
+  state.currentQuery = '';
+  el('searchInput').value = '';
+  renderAlbums();
+  el('albums').scrollIntoView({behavior: reducedMotion() ? 'auto':'smooth',block:'start'});
+}
+function scrollAlbumCarousel(direction) {
+  if (state.albumsExpanded || carouselSegment === 0) return;
+  postponeCarouselAuto(5500);
+  const vp = el('albumCarouselViewport');
+  const card = el('albumGrid').querySelector('.album-card');
+  const gap = parseFloat(getComputedStyle(el('albumGrid')).gap) || 0;
+  if (!card) return;
+  vp.scrollBy({left:(card.getBoundingClientRect().width+gap)*direction,behavior:reducedMotion()?'auto':'smooth'});
+}
+function startCarouselAnimation() {
+  if (carouselRaf) return;
+  postponeCarouselAuto();
+  function tick(now) {
+    const dt = carouselLastFrame ? Math.min(60,now-carouselLastFrame) : 16;
+    carouselLastFrame = now;
+    const vp = el('albumCarouselViewport');
+    const box = vp.getBoundingClientRect();
+    const visible = box.bottom > 0 && box.top < window.innerHeight;
+    if (state.booted && !state.albumsExpanded && !state.albumCarouselHover &&
+        !state.albumCarouselDrag && !document.hidden && visible &&
+        now >= carouselIdleUntil && carouselSegment > 0 && !reducedMotion() &&
+        !state.modalStack.length && getFilteredAlbums().length > 1) {
+      // Preserve fractional pixels: some browsers round scrollLeft to integers.
+      carouselAutoFraction += CAROUSEL_SPEED_PX * dt / 1000;
+      const wholePixels = Math.floor(carouselAutoFraction);
+      if (wholePixels > 0) {
+        vp.scrollLeft += wholePixels;
+        carouselAutoFraction -= wholePixels;
+        normalizeCarouselPosition();
+      }
+    }
+    carouselRaf = requestAnimationFrame(tick);
+  }
+  carouselRaf = requestAnimationFrame(tick);
 }
 
 function refreshImportButton() {
@@ -675,6 +842,7 @@ function openModal(id) {
   if (focused) requestAnimationFrame(() => focused.focus());
 }
 function closeModal(id) {
+  if (id === 'siteModal') applyAppearance();
   const node = el(id);
   if (!node || node.hidden) return;
   node.hidden = true;
@@ -715,7 +883,7 @@ function renderGallery() {
         <img loading="lazy" ${resilientImageAttrs(photo.url)} alt="${e(translateContent(photo,'title') || `Foto ${i+1}`)}">
       </button>
       <span class="masonry-item__label">${e(translateContent(photo,'title') || `FRAME ${capitalizeId(i)}`)}</span>
-      ${state.admin ? `<div class="masonry-item__admin"><button type="button" class="mini-button" data-edit-photo="${e(photo.id)}">EDIT</button><button type="button" class="mini-button mini-button--danger" data-delete-photo="${e(photo.id)}">HAPUS</button></div>` : ''}
+      ${state.admin ? `<div class="masonry-item__admin"><button type="button" class="mini-button" data-edit-photo="${e(photo.id)}">${e(t('editPhoto'))}</button><button type="button" class="mini-button mini-button--danger" data-delete-photo="${e(photo.id)}">${e(t('deletePhoto'))}</button></div>` : ''}
     </article>`).join('');
 }
 
@@ -924,6 +1092,71 @@ function installLightboxZoom() {
   paintLightboxZoom();
 }
 
+// One-track ambient soundtrack: intentionally user-initiated; never autoplay with sound.
+let ambientFadeFrame = 0;
+let ambientPlaying = false;
+let ambientDesiredVolume = 0.25;
+function fadeAmbientTo(target, pauseAfter = false) {
+  const audio = el('ambientAudio');
+  cancelAnimationFrame(ambientFadeFrame);
+  const from = audio.volume;
+  const start = performance.now();
+  const duration = 460;
+  function frame(now) {
+    const fraction = Math.min(1, (now-start)/duration);
+    const eased = fraction*fraction*(3-2*fraction);
+    audio.volume = Math.max(0,Math.min(1,from+(target-from)*eased));
+    if (fraction < 1) ambientFadeFrame = requestAnimationFrame(frame);
+    else if (pauseAfter && !ambientPlaying) audio.pause();
+  }
+  ambientFadeFrame = requestAnimationFrame(frame);
+}
+function updateAmbientButton() {
+  const button = el('ambientToggle');
+  const usable = state.site.musicEnabled === true && !!safeUrl(state.site.musicUrl);
+  button.hidden = !usable;
+  button.classList.toggle('is-playing', ambientPlaying);
+  button.setAttribute('aria-pressed',String(ambientPlaying));
+  button.setAttribute('aria-label',ambientPlaying ? 'Mute ambient music' : 'Play ambient music');
+  button.title = ambientPlaying ? 'Mute ambient music' : 'Play ambient music';
+}
+function configureAmbientAudio() {
+  const audio = el('ambientAudio');
+  const url = safeUrl(state.site.musicUrl);
+  const enabled = state.site.musicEnabled === true && !!url;
+  ambientDesiredVolume = Math.min(1,Math.max(0,Number(state.site.musicVolume ?? 25)/100));
+  if (!enabled) {
+    ambientPlaying = false;
+    audio.pause();
+    audio.removeAttribute('src');
+    audio.load();
+  } else if (audio.getAttribute('src') !== url) {
+    ambientPlaying = false;
+    audio.pause();
+    audio.src = url;
+    audio.load();
+  } else if (ambientPlaying) fadeAmbientTo(ambientDesiredVolume);
+  audio.loop = true;
+  updateAmbientButton();
+}
+async function toggleAmbientMusic() {
+  const audio = el('ambientAudio');
+  if (!state.site.musicEnabled || !safeUrl(state.site.musicUrl)) return;
+  if (ambientPlaying) {
+    ambientPlaying = false;
+    fadeAmbientTo(0,true);
+    updateAmbientButton();
+    return;
+  }
+  cancelAnimationFrame(ambientFadeFrame);
+  audio.volume = 0;
+  try {
+    await audio.play(); // invoked from the user's real click
+    ambientPlaying = true;
+    fadeAmbientTo(ambientDesiredVolume);
+  } catch(error) { ambientPlaying = false; toast('Musik tidak dapat diputar. Pastikan URL audio publik mendukung playback browser.',true); }
+  updateAmbientButton();
+}
 function isFirebaseConfigured() {
   return ['apiKey','authDomain','projectId','appId'].every((key) =>
     typeof firebaseConfig[key] === 'string' &&
@@ -975,6 +1208,8 @@ async function startFirebase() {
     firebase.unsubscribers.push(firestoreSdk.onSnapshot(settingsDoc, snapshot => {
       if (!state.booted) return;
       applySettingsSnapshot(snapshot);
+      applyAppearance();
+      configureAmbientAudio();
       applyLanguage();
       resetAutoSlide();
     }, error => toast(`Gagal membaca site_settings: ${friendlyError(error)}`, true)));
@@ -1070,6 +1305,33 @@ async function doLogout() {
   } catch (error) { toast(friendlyError(error), true); }
 }
 
+function syncAccentEditor(hex) {
+  const value = HEX_COLOR.test(String(hex)) ? String(hex).toUpperCase() : '#E11D48';
+  el('siteAccentHex').value = value;
+  el('siteAccentPicker').value = value.toLowerCase();
+  document.querySelectorAll('[data-theme-color]').forEach(b => b.classList.toggle('is-selected', b.dataset.themeColor.toUpperCase() === value));
+  applyAppearance(value, previewTypographyValues());
+}
+function previewTypographyValues() {
+  const form = el('siteForm');
+  const obj={};
+  for (const key of Object.keys(TYPOGRAPHY_RULES)) obj[key] = clampRange(form.elements.namedItem(key)?.value, TYPOGRAPHY_RULES[key]);
+  return obj;
+}
+function syncTypographyEditor(typography) {
+  for (const [key,rule] of Object.entries(TYPOGRAPHY_RULES)) {
+    const value = clampRange(typography?.[key] ?? rule[2],rule);
+    el('siteForm').elements.namedItem(key).value = value;
+    el(`${key}Out`).textContent = `${value} px`;
+  }
+  applyAppearance(el('siteAccentHex').value,previewTypographyValues());
+}
+function setMusicEditorValues() {
+  el('siteMusicEnabled').checked = state.site.musicEnabled === true;
+  el('siteMusicUrl').value = state.site.musicUrl || '';
+  el('siteMusicVolume').value = state.site.musicVolume ?? 25;
+  el('siteMusicVolumeOut').textContent = `${state.site.musicVolume ?? 25}%`;
+}
 let siteEditorDraft = {};
 let siteEditorCurrentLanguage = 'en';
 function captureSiteLocale() {
@@ -1098,6 +1360,11 @@ function openSiteEditor() {
   form.elements.namedItem('autoSlideSeconds').value = clampSeconds(state.site.autoSlideSeconds ?? 6);
   form.elements.namedItem('defaultLanguage').value = LANGUAGES.includes(state.site.defaultLanguage) ? state.site.defaultLanguage : 'en';
   siteEditorDraft = structuredClone(state.site.translations || {});
+  uiTextEditorDraft = structuredClone(state.site.uiText || {});
+  switchUiTextLocale(state.language);
+  syncAccentEditor(state.site.accentColor || '#E11D48');
+  syncTypographyEditor(state.site.typography);
+  setMusicEditorValues();
   siteEditorCurrentLanguage = state.language;
   el('siteEditLanguage').value = state.language;
   showSiteLocale(state.language);
@@ -1109,12 +1376,21 @@ async function saveSite(event) {
   event.preventDefault();
   if (!requireAdmin()) return;
   captureSiteLocale();
+  captureUiTextLocale();
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
+  data.musicEnabled = el('siteMusicEnabled').checked;
+  data.musicVolume = Math.min(100,Math.max(0,Number(data.musicVolume || 0)));
+  data.accentColor = HEX_COLOR.test(String(data.accentColor)) ? data.accentColor.toUpperCase() : '#E11D48';
+  data.typography = previewTypographyValues();
+  data.uiText = structuredClone(uiTextEditorDraft);
+  for (const key of Object.keys(TYPOGRAPHY_RULES)) delete data[key];
   for (const key of ['profilePhotoUrl','storyImageUrl','storyThumbOneUrl','storyThumbTwoUrl']) {
     if (data[key] && !safeUrl(data[key])) return toast(`URL HTTPS tidak valid: ${key}`, true);
   }
   if (data.instagramUrl && !safeUrl(data.instagramUrl)) return toast('URL Instagram harus HTTPS.', true);
+  if (data.musicUrl && !safeUrl(data.musicUrl)) return toast('URL musik harus HTTPS.',true);
+  if (data.musicEnabled && !safeUrl(data.musicUrl)) return toast('Aktifkan musik hanya setelah mengisi URL audio publik.',true);
   data.autoSlideSeconds = clampSeconds(data.autoSlideSeconds);
   data.defaultLanguage = LANGUAGES.includes(data.defaultLanguage) ? data.defaultLanguage : 'en';
   data.translations = structuredClone(siteEditorDraft);
@@ -1127,8 +1403,12 @@ async function saveSite(event) {
     await firebase.fs.setDoc(firebase.fs.doc(firebase.db,'site_settings','main'), {
       ...data, updatedAt: firebase.fs.serverTimestamp()
     }, {merge:true});
+    state.site = {...state.site,...data};
+    applyAppearance();
+    configureAmbientAudio();
+    applyLanguage();
     closeModal('siteModal');
-    toast('Pengaturan, durasi slideshow dan bahasa berhasil disimpan.');
+    toast('Teks, tipografi, tema, musik, dan pengaturan website berhasil disimpan.');
   } catch(error) { toast(friendlyError(error),true); }
   finally { button.disabled = false; }
 }
@@ -1441,6 +1721,7 @@ function resetSearch() {
   state.currentCategory = 'ALL';
   state.currentQuery = '';
   state.visibleAlbumCount = ALBUM_PAGE_SIZE;
+  state.albumsExpanded = false;
   el('searchInput').value = '';
   renderAlbums();
 }
@@ -1471,11 +1752,27 @@ function attachEvents() {
     if (target.dataset.deletePhoto) return deletePhoto(target.dataset.deletePhoto);
     if (target.dataset.filter !== undefined) {
       state.currentCategory = target.dataset.filter;
+      if (state.currentCategory !== 'ALL') state.albumsExpanded = true;
       state.visibleAlbumCount = ALBUM_PAGE_SIZE;
       renderAlbums();
     }
   });
   el('languageSelect').addEventListener('change', event => setLanguage(event.target.value));
+  el('ambientToggle').addEventListener('click',toggleAmbientMusic);
+  el('ambientAudio').addEventListener('error',()=>{if (ambientPlaying){ambientPlaying=false;updateAmbientButton();toast('Audio tidak dapat dimuat. Periksa URL soundtrack.',true);}});
+  el('siteUiTextLanguage').addEventListener('change',event=>{captureUiTextLocale();switchUiTextLocale(event.target.value);});
+  el('siteAccentHex').addEventListener('input',event=>{if(HEX_COLOR.test(event.target.value))syncAccentEditor(event.target.value);});
+  el('siteAccentPicker').addEventListener('input',event=>syncAccentEditor(event.target.value));
+  el('themePresets').addEventListener('click',event=>{const b=event.target.closest('[data-theme-color]');if(b)syncAccentEditor(b.dataset.themeColor);});
+  el('resetThemeColor').addEventListener('click',()=>syncAccentEditor('#E11D48'));
+  el('typographyEditor').addEventListener('input',event=>{
+    const input=event.target;
+    if(!input.name || !(input.name in TYPOGRAPHY_RULES)) return;
+    el(`${input.name}Out`).textContent=`${input.value} px`;
+    applyAppearance(el('siteAccentHex').value,previewTypographyValues());
+  });
+  el('resetTypography').addEventListener('click',()=>syncTypographyEditor(Object.fromEntries(Object.entries(TYPOGRAPHY_RULES).map(([k,v])=>[k,v[2]]))));
+  el('siteMusicVolume').addEventListener('input',event=>{el('siteMusicVolumeOut').textContent=`${event.target.value}%`;});
   el('siteEditLanguage').addEventListener('change', event => {
     captureSiteLocale(); showSiteLocale(event.target.value);
   });
@@ -1497,6 +1794,7 @@ function attachEvents() {
   el('searchToggle').addEventListener('click', () => setSearchOpen(el('searchPanel').hidden));
   el('searchInput').addEventListener('input', (event) => {
     state.currentQuery = event.currentTarget.value;
+    if (state.currentQuery.trim()) state.albumsExpanded = true;
     state.visibleAlbumCount = ALBUM_PAGE_SIZE;
     renderAlbums();
   });
@@ -1505,6 +1803,34 @@ function attachEvents() {
     state.visibleAlbumCount += ALBUM_PAGE_SIZE;
     renderAlbums();
   });
+  el('albumExpand').addEventListener('click',expandAlbums);
+  el('albumCollapse').addEventListener('click',collapseAlbums);
+  el('albumArrowPrev').addEventListener('click',()=>scrollAlbumCarousel(-1));
+  el('albumArrowNext').addEventListener('click',()=>scrollAlbumCarousel(1));
+  const carouselVp = el('albumCarouselViewport');
+  carouselVp.addEventListener('mouseenter',()=>{state.albumCarouselHover=true;});
+  carouselVp.addEventListener('mouseleave',()=>{state.albumCarouselHover=false;postponeCarouselAuto();});
+  carouselVp.addEventListener('focusin',()=>{state.albumCarouselHover=true;});
+  carouselVp.addEventListener('focusout',()=>{state.albumCarouselHover=false;postponeCarouselAuto();});
+  carouselVp.addEventListener('scroll',normalizeCarouselPosition,{passive:true});
+  carouselVp.addEventListener('pointerdown',event=>{
+    if (event.pointerType !== 'mouse' || state.albumsExpanded) return;
+    carouselDragState={x:event.clientX,left:carouselVp.scrollLeft,moved:false};
+    state.albumCarouselDrag=true;postponeCarouselAuto();
+  });
+  carouselVp.addEventListener('pointermove',event=>{
+    if (!carouselDragState || event.pointerType !== 'mouse') return;
+    const distance=event.clientX-carouselDragState.x;
+    if (Math.abs(distance)>7) carouselDragState.moved=true;
+    if (carouselDragState.moved) carouselVp.scrollLeft=carouselDragState.left-distance;
+  });
+  const endDrag=()=>{if (carouselDragState?.moved) carouselVp.dataset.recentDrag='true';carouselDragState=null;state.albumCarouselDrag=false;postponeCarouselAuto();};
+  carouselVp.addEventListener('pointerup',endDrag);
+  carouselVp.addEventListener('pointercancel',endDrag);
+  carouselVp.addEventListener('click',event=>{
+    if (carouselVp.dataset.recentDrag === 'true') {event.preventDefault();event.stopImmediatePropagation();delete carouselVp.dataset.recentDrag;}
+  },true);
+  window.addEventListener('resize',()=>{if(!state.albumsExpanded)resetCarouselPosition();});
   el('mobileToggle').addEventListener('click', () => {
     const open = !el('mainNav').classList.contains('is-open');
     el('mainNav').classList.toggle('is-open', open);
