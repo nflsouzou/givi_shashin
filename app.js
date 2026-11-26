@@ -196,12 +196,50 @@ const TYPOGRAPHY_RULES = {
 };
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const clampRange = (value, rule) => Math.min(rule[1], Math.max(rule[0], Number.isFinite(Number(value)) ? Number(value) : rule[2]));
+
+// Revisi 08 — Givi favicon derived from the user's original logo.
+// Static favicon.png is a fallback; this PNG is repainted whenever the
+// accent changes (including live preview and Firestore onSnapshot updates).
+// We use the distinctive "g" monogram for legibility in tiny browser tabs.
+const GIVI_FAVICON_PATH = "M299,4 L283,6 L263,13 L247,24 L237,34 L208,17 L181,8 L163,5 L125,5 L108,8 L86,15 L59,30 L33,54 L19,74 L8,98 L2,121 L0,137 L1,165 L5,185 L18,217 L34,240 L49,255 L69,269 L95,280 L115,284 L146,284 L165,280 L184,272 L204,258 L219,241 L223,239 L223,284 L216,316 L204,336 L182,355 L163,363 L147,366 L132,366 L116,363 L97,355 L83,345 L70,331 L61,315 L10,357 L25,380 L42,397 L63,412 L89,424 L120,431 L145,432 L178,427 L205,417 L231,401 L253,380 L268,359 L282,327 L289,287 L289,137 L285,111 L278,91 L278,84 L283,73 L291,66 L299,63Z M134,68 L163,69 L175,73 L191,82 L210,102 L221,128 L223,144 L221,163 L211,186 L189,209 L177,216 L162,221 L130,221 L117,217 L102,209 L87,195 L79,184 L73,172 L69,156 L70,128 L81,102 L99,83 L108,77Z";
+const faviconByAccent = new Map();
+let appliedFaviconAccent = null;
+function applyGiviFavicon(accent) {
+  const link = document.getElementById('giviFavicon');
+  if (!link || appliedFaviconAccent === accent) return;
+  try {
+    if (!faviconByAccent.has(accent)) {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 128;
+      const context = canvas.getContext('2d');
+      if (!context || typeof Path2D === 'undefined') throw new Error('Canvas Path2D unavailable');
+      // Svg viewBox: 64x64. Original mark bounds: 300x434.
+      context.scale(2, 2);
+      context.translate(12.7, 4);
+      context.scale(0.129, 0.129);
+      context.fillStyle = accent;
+      context.fill(new Path2D(GIVI_FAVICON_PATH), 'evenodd');
+      faviconByAccent.set(accent, canvas.toDataURL('image/png'));
+    }
+    link.type = 'image/png';
+    link.href = faviconByAccent.get(accent);
+    appliedFaviconAccent = accent;
+  } catch (error) {
+    // SVG data URI fallback still follows the theme if PNG canvas is unavailable.
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><g fill="${accent}" fill-rule="evenodd" transform="translate(12.7 4) scale(.129)"><path d="${GIVI_FAVICON_PATH}"/></g></svg>`;
+    link.type = 'image/svg+xml';
+    link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+    appliedFaviconAccent = accent;
+  }
+}
+
 function applyAppearance(accent = state.site.accentColor, typography = state.site.typography) {
   const hex = HEX_COLOR.test(String(accent)) ? String(accent).toUpperCase() : '#E11D48';
   const root = document.documentElement;
   root.style.setProperty('--accent', hex);
   const rgb = [1,3,5].map(x => parseInt(hex.slice(x,x+2),16));
   root.style.setProperty('--accent-rgb', rgb.join(' '));
+  applyGiviFavicon(hex);
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content','#0B0E14');
   for (const [key, rule] of Object.entries(TYPOGRAPHY_RULES)) {
     root.style.setProperty('--'+key, `${clampRange(typography?.[key] ?? rule[2],rule)}px`);
